@@ -15,13 +15,11 @@
         * { box-sizing: border-box; user-select: none; -webkit-touch-callout: none; }
         body { font-family: 'Jua', sans-serif; margin: 0; padding: 0; background: var(--bg); display: flex; flex-direction: column; height: 100vh; overflow: hidden; color: var(--text); overscroll-behavior: none; }
 
-        /* 💡 1. 초슬림 헤더 */
         header { background: var(--panel); padding: 8px 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: flex; align-items: center; z-index: 100; height: 60px; flex-shrink: 0; gap: 10px;}
         .btn-back { background: #E74C3C; color: white; border: none; padding: 8px 15px; border-radius: 12px; font-family: 'Jua', sans-serif; font-size: 1.1rem; cursor: pointer; height: 100%; white-space: nowrap;}
         .select-group { display: flex; gap: 8px; height: 100%; flex: 1; }
         select { flex: 1; border: 2px solid var(--border); border-radius: 12px; font-family: 'Jua', sans-serif; font-size: 1.1rem; outline: none; background: #FDFDFD; padding: 0 10px; color: var(--text);}
 
-        /* 💡 2. 지도 및 반응형 패널 레이아웃 */
         main { display: flex; position: relative; width: 100vw; height: calc(100vh - 60px); overflow: hidden; }
         
         #map-stage { flex: 1; position: relative; background: white; overflow: hidden; touch-action: none; }
@@ -30,7 +28,6 @@
         #loading-msg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 1.5rem; color: var(--primary); display: none; background: rgba(255,255,255,0.95); padding: 15px 30px; border-radius: 30px; z-index: 100; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 2px solid var(--primary);}
         #toast-msg { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); font-size: 1.2rem; color: white; display: none; background: rgba(44, 62, 80, 0.85); padding: 12px 30px; border-radius: 20px; z-index: 100; }
 
-        /* 💡 3. 좌측 하단 줌, 우측 하단 제출 플로팅 버튼 */
         .zoom-controls { position: absolute; bottom: 20px; left: 20px; display: flex; flex-direction: column; gap: 8px; z-index: 50; transition: bottom 0.3s; }
         .zoom-btn { background: white; border: 2px solid var(--border); border-radius: 50%; width: 50px; height: 50px; font-size: 1.5rem; cursor: pointer; font-family: 'Jua', sans-serif; font-weight: bold; color: var(--text); box-shadow: 0 4px 10px rgba(0,0,0,0.1);}
         .zoom-btn-rect { border-radius: 12px; width: 50px; height: 40px; font-size: 1rem;}
@@ -41,13 +38,11 @@
         .fab-submit:active { transform: scale(0.95); background: var(--primary-hover); }
         .fab-save { background: #95A5A6; width: 50px; height: 50px; border-radius: 50%; font-size: 1.4rem; }
 
-        /* 💡 4. 도구 패널 (Bottom Sheet / Side Panel) */
         aside { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: absolute; z-index: 100; box-shadow: 0 0 20px rgba(0,0,0,0.15); display: flex; flex-direction: column; }
         .panel-toggle { position: absolute; background: var(--panel); box-shadow: 0 2px 10px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; cursor: pointer; font-family: 'Jua', sans-serif; color: var(--primary); font-size: 1.2rem; border: 1px solid #ddd; z-index: 101;}
         
         .panel-content { flex: 1; display: flex; flex-direction: column; padding: 15px; overflow: hidden; }
         
-        /* 패널 3단 탭 메뉴 */
         .ptab-menu { display: flex; gap: 5px; background: #F0F3F4; padding: 6px; border-radius: 14px; margin-bottom: 15px; flex-shrink: 0;}
         .ptab-btn { flex: 1; padding: 10px; border: none; background: transparent; font-family: 'Jua', sans-serif; font-size: 1.15rem; border-radius: 10px; color: #7F8C8D; cursor: pointer; transition: 0.2s;}
         .ptab-btn.active { background: white; color: var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.05); font-weight: bold;}
@@ -55,7 +50,6 @@
         .tab-content { display: none; flex-direction: column; gap: 15px; flex: 1; overflow-y: auto; padding-right: 5px;}
         .tab-content.active { display: flex; }
 
-        /* 반응형: 가로 모드 (Right Side Panel) */
         @media (orientation: landscape) {
             aside { right: 0; top: 0; height: 100%; width: 340px; transform: translateX(340px); border-left: 1px solid #ddd; border-top-left-radius: 20px; border-bottom-left-radius: 20px;}
             aside.open { transform: translateX(0); }
@@ -63,7 +57,6 @@
             body.panel-open .action-controls { right: calc(340px + 20px); }
         }
 
-        /* 반응형: 세로 모드 (Bottom Sheet) */
         @media (orientation: portrait) {
             aside { bottom: 0; left: 0; width: 100%; height: 45vh; transform: translateY(45vh); border-top: 1px solid #ddd; border-top-left-radius: 24px; border-top-right-radius: 24px;}
             aside.open { transform: translateY(0); }
@@ -71,7 +64,6 @@
             body.panel-open .action-controls, body.panel-open .zoom-controls { bottom: calc(45vh + 20px); }
         }
 
-        /* 도구 내부 UI 요소들 */
         .btn-grid { display: grid; gap: 8px; }
         .grid-3 { grid-template-columns: repeat(3, 1fr); }
         .grid-2 { grid-template-columns: repeat(2, 1fr); }
@@ -158,7 +150,6 @@
                     <div class="btn-grid grid-3">
                         <button class="tool-btn selected" id="mode-free" onclick="setDrawMode('free')">✍️ 쓱쓱</button>
                         <button class="tool-btn" id="mode-point" onclick="setDrawMode('point')">📏 점 잇기</button>
-                        <!-- 💡 태블릿 필수: 선 끊기 버튼 -->
                         <button class="tool-btn btn-danger" onclick="breakLine()">✂️ 선 끊기</button>
                     </div>
                 </div>
@@ -194,13 +185,12 @@
                         </div>
                     </div>
                 </div>
-
             </div>
         </aside>
     </main>
 
     <script>
-        // --- 💡 UI 컨트롤 로직 ---
+        // --- UI 패널 컨트롤 ---
         let isPanelOpen = false;
         function togglePanel() {
             isPanelOpen = !isPanelOpen;
@@ -215,7 +205,6 @@
             if(isPanelOpen) btn.innerHTML = isLandscape ? '▶ 닫기' : '▼ 닫기';
             else btn.innerHTML = isLandscape ? '◀ 도구' : '▲ 도구';
         }
-        window.addEventListener('resize', updateToggleText);
 
         function switchPanelTab(tabId) {
             document.querySelectorAll('.ptab-btn').forEach(b => b.classList.remove('active'));
@@ -224,7 +213,7 @@
             document.getElementById('tab-' + tabId).classList.add('active');
         }
 
-        // --- 데이터 로직 (기존과 동일) ---
+        // --- 지역 및 스티커 데이터 ---
         const regionData = {
             "서울특별시": ["종로구", "중구", "용산구", "성동구", "광진구", "동대문구", "중랑구", "성북구", "강북구", "도봉구", "노원구", "은평구", "서대문구", "마포구", "양천구", "강서구", "구로구", "금천구", "영등포구", "동작구", "관악구", "서초구", "강남구", "송파구", "강동구"],
             "경기도": ["수원시", "성남시", "의정부시", "안양시", "부천시", "광명시", "동두천시", "평택시", "안산시", "고양시", "과천시", "구리시", "남양주시", "오산시", "시흥시", "군포시", "의왕시", "하남시", "용인시", "파주시", "이천시", "안성시", "김포시", "화성시", "광주시", "양주시", "포천시", "여주시", "연천군", "가평군", "양평군"],
@@ -262,27 +251,44 @@
             { e: "⛽", t: "주유소", c: "human" }, { e: "🏛️", t: "시/도청", c: "human" }, { e: "🏢", t: "시/군/구청", c: "human" }
         ];
 
+        // --- 통합 상태 및 캔버스 엔진 ---
+        const cvs = document.getElementById('mapCanvas');
+        const ctx = cvs.getContext('2d');
         let drawCanvas = document.createElement('canvas'); let drawCtx = drawCanvas.getContext('2d');
         let tempCanvas = document.createElement('canvas'); let tempCtx = tempCanvas.getContext('2d');
         
-        let stickers = []; let historyStack = []; let stickerHistoryStack = []; let historyStep = -1;
-        let showText = true; let currentCat = 'all'; let curTool = 'road'; let drawMode = 'free'; let curIcon = null;
+        let mapState = {
+            stickers: [],
+            historyStack: [],
+            stickerHistoryStack: [],
+            historyStep: -1,
+            isDrawing: false,
+            isPanning: false,
+            strokePoints: [],
+            lastPoint: null,
+            selectedStickerIdx: -1
+        };
         
+        let showText = true; let currentCat = 'all'; let curTool = 'road'; let drawMode = 'free'; let curIcon = null;
         let nationalImg = null; let isNationalMap = true; let showBaseMap = true; let mapImg = null;
         let baseImgW = 1000, baseImgH = 1000; let imgRect = { x: 0, y: 0, w: 0, h: 0 }; 
-        
-        let isDrawing = false; let isPanning = false; let strokePoints = []; let lastPoint = null;
-        let selectedStickerIdx = -1; 
-        
-        let scale = 1; let panX = 0; let panY = 0;
-        let startX = 0, startY = 0;
+        let scale = 1; let panX = 0; let panY = 0; let startX = 0, startY = 0;
         let initialPinchDist = null; let initialScale = 1;
 
-        const cvs = document.getElementById('mapCanvas'); const ctx = cvs.getContext('2d');
-        const msg = document.getElementById('loading-msg'); const widthSlider = document.getElementById('line-width-slider');
+        const msg = document.getElementById('loading-msg'); 
+        const widthSlider = document.getElementById('line-width-slider');
         const stickerSlider = document.getElementById('sticker-size-slider');
 
-        window.onload = () => { initDropdowns(); loadNationalPreset(); renderIcons(); };
+        // 💡 1. requestAnimationFrame 도입 (렌더링 최적화)
+        let isRedrawScheduled = false;
+        function scheduleRedraw() {
+            if (!isRedrawScheduled) {
+                isRedrawScheduled = true;
+                requestAnimationFrame(() => { redraw(); isRedrawScheduled = false; });
+            }
+        }
+
+        window.onload = () => { initDropdowns(); loadNationalPreset(); renderIcons(); window.addEventListener('resize', updateToggleText); };
 
         function initDropdowns() {
             const selSido = document.getElementById('sido-select'); const selSigg = document.getElementById('sigungu-select');
@@ -306,42 +312,42 @@
         function setupCanvasDimensions(w, h) {
             baseImgW = w || 1000; baseImgH = h || 1000;
             drawCanvas.width = tempCanvas.width = baseImgW; drawCanvas.height = tempCanvas.height = baseImgH;
-            drawCtx.clearRect(0,0,baseImgW, baseImgH); stickers = []; historyStack = []; stickerHistoryStack = []; historyStep = -1; lastPoint = null;
+            drawCtx.clearRect(0,0,baseImgW, baseImgH); 
+            mapState.stickers = []; mapState.historyStack = []; mapState.stickerHistoryStack = []; mapState.historyStep = -1; mapState.lastPoint = null;
             saveHistory(); resetZoomControl(); resize();
         }
 
-        function autoSaveToSession() { sessionStorage.setItem('map1_autosave', drawCanvas.toDataURL()); }
-
         function saveHistory() {
-            historyStack = historyStack.slice(0, historyStep + 1);
-            historyStack.push(drawCtx.getImageData(0, 0, baseImgW, baseImgH));
-            stickerHistoryStack = stickerHistoryStack.slice(0, historyStep + 1);
-            stickerHistoryStack.push(JSON.parse(JSON.stringify(stickers)));
-            historyStep++; updateHistoryBtns(); autoSaveToSession();
+            mapState.historyStack = mapState.historyStack.slice(0, mapState.historyStep + 1);
+            mapState.historyStack.push(drawCtx.getImageData(0, 0, baseImgW, baseImgH));
+            mapState.stickerHistoryStack = mapState.stickerHistoryStack.slice(0, mapState.historyStep + 1);
+            mapState.stickerHistoryStack.push(JSON.parse(JSON.stringify(mapState.stickers)));
+            mapState.historyStep++; updateHistoryBtns();
         }
 
         function undo() {
-            if (historyStep > 0) {
-                historyStep--; drawCtx.putImageData(historyStack[historyStep], 0, 0);
-                stickers = JSON.parse(JSON.stringify(stickerHistoryStack[historyStep]));
-                lastPoint = null; selectedStickerIdx = -1; redraw(); updateHistoryBtns(); autoSaveToSession();
+            if (mapState.historyStep > 0) {
+                mapState.historyStep--; drawCtx.putImageData(mapState.historyStack[mapState.historyStep], 0, 0);
+                mapState.stickers = JSON.parse(JSON.stringify(mapState.stickerHistoryStack[mapState.historyStep]));
+                mapState.lastPoint = null; mapState.selectedStickerIdx = -1; scheduleRedraw(); updateHistoryBtns();
             }
         }
+        
         function redo() {
-            if (historyStep < historyStack.length - 1) {
-                historyStep++; drawCtx.putImageData(historyStack[historyStep], 0, 0);
-                stickers = JSON.parse(JSON.stringify(stickerHistoryStack[historyStep]));
-                lastPoint = null; selectedStickerIdx = -1; redraw(); updateHistoryBtns(); autoSaveToSession();
+            if (mapState.historyStep < mapState.historyStack.length - 1) {
+                mapState.historyStep++; drawCtx.putImageData(mapState.historyStack[mapState.historyStep], 0, 0);
+                mapState.stickers = JSON.parse(JSON.stringify(mapState.stickerHistoryStack[mapState.historyStep]));
+                mapState.lastPoint = null; mapState.selectedStickerIdx = -1; scheduleRedraw(); updateHistoryBtns();
             }
         }
 
         function clearAll() { 
-            if(confirm("모든 펜 자국을 지울까요? (스티커는 남습니다)")) { drawCtx.clearRect(0, 0, baseImgW, baseImgH); lastPoint = null; saveHistory(); redraw(); }
+            if(confirm("모든 펜 자국을 지울까요? (스티커는 남습니다)")) { drawCtx.clearRect(0, 0, baseImgW, baseImgH); mapState.lastPoint = null; saveHistory(); scheduleRedraw(); }
         }
 
         function updateHistoryBtns() {
-            document.getElementById('btn-undo').style.opacity = historyStep > 0 ? "1" : "0.4";
-            document.getElementById('btn-redo').style.opacity = historyStep < historyStack.length - 1 ? "1" : "0.4";
+            document.getElementById('btn-undo').style.opacity = mapState.historyStep > 0 ? "1" : "0.4";
+            document.getElementById('btn-redo').style.opacity = mapState.historyStep < mapState.historyStack.length - 1 ? "1" : "0.4";
         }
 
         function setCategoryFilter(cat) {
@@ -366,21 +372,21 @@
             });
         }
 
-        function setTextMode(val) { showText = val; document.getElementById('t-leg-on').classList.toggle('active', val); document.getElementById('t-leg-off').classList.toggle('active', !val); redraw(); }
-        function setBaseMapMode(val) { showBaseMap = val; document.getElementById('t-map-on').classList.toggle('active', val); document.getElementById('t-map-off').classList.toggle('active', !val); redraw(); }
+        function setTextMode(val) { showText = val; document.getElementById('t-leg-on').classList.toggle('active', val); document.getElementById('t-leg-off').classList.toggle('active', !val); scheduleRedraw(); }
+        function setBaseMapMode(val) { showBaseMap = val; document.getElementById('t-map-on').classList.toggle('active', val); document.getElementById('t-map-off').classList.toggle('active', !val); scheduleRedraw(); }
 
         function setTool(t) {
             curTool = t; curIcon = null;
-            if (lastPoint !== null) { breakLine(); }
+            if (mapState.lastPoint !== null) { breakLine(); }
             if (drawMode === 'point' && t !== 'icon') setDrawMode('free');
             document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('selected'));
             if(document.getElementById('tool-' + t)) document.getElementById('tool-' + t).classList.add('selected');
             document.querySelectorAll('.sticker-item').forEach(b => b.classList.remove('selected'));
-            selectedStickerIdx = -1; redraw();
+            mapState.selectedStickerIdx = -1; scheduleRedraw();
         }
 
-        function setDrawMode(m) { drawMode = m; lastPoint = null; document.getElementById('mode-free').classList.remove('selected'); document.getElementById('mode-point').classList.remove('selected'); document.getElementById('mode-' + m).classList.add('selected'); }
-        function breakLine() { lastPoint = null; showToast("✂️ 선을 끊었습니다."); redraw(); }
+        function setDrawMode(m) { drawMode = m; mapState.lastPoint = null; document.getElementById('mode-free').classList.remove('selected'); document.getElementById('mode-point').classList.remove('selected'); document.getElementById('mode-' + m).classList.add('selected'); }
+        function breakLine() { mapState.lastPoint = null; showToast("✂️ 선을 끊었습니다."); scheduleRedraw(); }
 
         function loadMap() {
             const sd = document.getElementById('sido-select').value; const sgg = document.getElementById('sigungu-select').value; if (!sd || !sgg) return;
@@ -409,12 +415,19 @@
             img.src = url1;
         }
 
+        // 💡 4. 스마트한 Resize (배율과 위치 보존)
         function resize() {
             cvs.width = cvs.parentElement.clientWidth; cvs.height = cvs.parentElement.clientHeight;
+            
             const s = Math.min(cvs.width / baseImgW, cvs.height / baseImgH) * 0.95; 
             imgRect.w = baseImgW * s; imgRect.h = baseImgH * s;
             imgRect.x = (cvs.width - imgRect.w) / 2; imgRect.y = (cvs.height - imgRect.h) / 2;
-            redraw();
+            
+            const maxPanX = cvs.width - 50; const minPanX = -(imgRect.w * scale) + 50;
+            const maxPanY = cvs.height - 50; const minPanY = -(imgRect.h * scale) + 50;
+            panX = Math.max(minPanX, Math.min(maxPanX, panX)); panY = Math.max(minPanY, Math.min(maxPanY, panY));
+
+            scheduleRedraw();
         }
         window.addEventListener('resize', resize);
 
@@ -422,9 +435,9 @@
             const newScale = Math.min(Math.max(0.5, scale * factor), 6);
             const cx = cvs.width / 2; const cy = cvs.height / 2;
             panX = cx - (cx - panX) * (newScale / scale); panY = cy - (cy - panY) * (newScale / scale);
-            scale = newScale; redraw();
+            scale = newScale; scheduleRedraw();
         }
-        function resetZoomControl() { scale = 1; panX = 0; panY = 0; redraw(); }
+        function resetZoomControl() { scale = 1; panX = 0; panY = 0; scheduleRedraw(); }
 
         function getPt(evt) {
             const rect = cvs.getBoundingClientRect();
@@ -454,92 +467,91 @@
             context.setLineDash([]);
         }
 
-        function updateStickerSize(val) { if (selectedStickerIdx !== -1) { stickers[selectedStickerIdx].scale = parseFloat(val); saveHistory(); redraw(); } }
+        function updateStickerSize(val) { if (mapState.selectedStickerIdx !== -1) { mapState.stickers[mapState.selectedStickerIdx].scale = parseFloat(val); saveHistory(); scheduleRedraw(); } }
 
-        // --- 🖐️ 제스처 & Pointer Events 적용 ---
+        // --- 💡 2. Pointer Capture 도입 ---
         cvs.addEventListener('pointerdown', e => {
             if(e.pointerType === 'touch' && !e.isPrimary) return; 
+            cvs.setPointerCapture(e.pointerId); // 화면 밖으로 드래그 이탈 방지
             
             const rect = cvs.getBoundingClientRect(); const clkX = e.clientX - rect.left; const clkY = e.clientY - rect.top;
-            if (curTool === 'pan') { isPanning = true; startX = e.clientX - panX; startY = e.clientY - panY; return; }
+            if (curTool === 'pan') { mapState.isPanning = true; startX = e.clientX - panX; startY = e.clientY - panY; return; }
 
-            // 스티커 선택 및 삭제 로직
             let clickedSticker = -1;
-            for (let i = stickers.length - 1; i >= 0; i--) {
-                const ap = absPt({x: stickers[i].realX, y: stickers[i].realY});
+            for (let i = mapState.stickers.length - 1; i >= 0; i--) {
+                const ap = absPt({x: mapState.stickers[i].realX, y: mapState.stickers[i].realY});
                 const screenX = ap.x * scale + panX; const screenY = ap.y * scale + panY;
-                const sScale = stickers[i].scale || 1; 
+                const sScale = mapState.stickers[i].scale || 1; 
                 
-                if (selectedStickerIdx === i && Math.hypot(clkX - (screenX+(25*sScale*scale)), clkY - (screenY-(25*sScale*scale))) < (30*sScale*scale)) {
-                    stickers.splice(i, 1); selectedStickerIdx = -1; saveHistory(); redraw(); return; 
+                if (mapState.selectedStickerIdx === i && Math.hypot(clkX - (screenX+(25*sScale*scale)), clkY - (screenY-(25*sScale*scale))) < (30*sScale*scale)) {
+                    mapState.stickers.splice(i, 1); mapState.selectedStickerIdx = -1; saveHistory(); scheduleRedraw(); return; 
                 }
                 if (Math.hypot(clkX - screenX, clkY - screenY) < (40*sScale*scale)) { clickedSticker = i; break; }
             }
 
             if(clickedSticker !== -1) {
-                selectedStickerIdx = clickedSticker; 
-                stickerSlider.value = stickers[selectedStickerIdx].scale || 1; 
-                redraw(); return; 
+                mapState.selectedStickerIdx = clickedSticker; 
+                stickerSlider.value = mapState.stickers[mapState.selectedStickerIdx].scale || 1; 
+                scheduleRedraw(); return; 
             } else {
-                selectedStickerIdx = -1; 
+                mapState.selectedStickerIdx = -1; 
             }
 
-            // 모드 분리 (A안: 펜, 지우개 도구일 때만 드로잉)
             const drawTools = ['road','rail','river','highlighter','eraser'];
             if(drawTools.includes(curTool)) {
                 const p = getPt(e); if (!p) return;
-                if (drawMode === 'free') { isDrawing = true; strokePoints = [p]; } 
+                if (drawMode === 'free') { mapState.isDrawing = true; mapState.strokePoints = [p]; } 
                 else {
                     const w = parseFloat(widthSlider.value);
-                    if (!lastPoint) { lastPoint = p; redraw(); } 
+                    if (!mapState.lastPoint) { mapState.lastPoint = p; scheduleRedraw(); } 
                     else {
                         if(curTool === 'eraser') drawCtx.globalCompositeOperation = 'destination-out';
                         if(curTool === 'highlighter') drawCtx.globalAlpha = 0.4;
-                        drawSmoothPath(drawCtx, [lastPoint, p], curTool, w);
+                        drawSmoothPath(drawCtx, [mapState.lastPoint, p], curTool, w);
                         drawCtx.globalAlpha = 1.0; drawCtx.globalCompositeOperation = 'source-over';
-                        lastPoint = p; saveHistory(); redraw();
+                        mapState.lastPoint = p; saveHistory(); scheduleRedraw();
                     }
                 }
             }
             
             if(curTool === 'icon' && curIcon) {
                 const p = getPt(e);
-                stickers.push({ e: curIcon.e, t: curIcon.t, realX: p.x, realY: p.y, scale: parseFloat(stickerSlider.value)||1 });
-                selectedStickerIdx = stickers.length - 1; 
-                saveHistory(); redraw();
+                mapState.stickers.push({ e: curIcon.e, t: curIcon.t, realX: p.x, realY: p.y, scale: parseFloat(stickerSlider.value)||1 });
+                mapState.selectedStickerIdx = mapState.stickers.length - 1; 
+                saveHistory(); scheduleRedraw();
             }
         });
 
         cvs.addEventListener('pointermove', e => {
-            if (isPanning && curTool === 'pan') { panX = e.clientX - startX; panY = e.clientY - startY; redraw(); return; }
-            if (isDrawing && drawMode === 'free') {
+            if (mapState.isPanning && curTool === 'pan') { panX = e.clientX - startX; panY = e.clientY - startY; scheduleRedraw(); return; }
+            if (mapState.isDrawing && drawMode === 'free') {
                 const p = getPt(e); if(p) { 
-                    strokePoints.push(p); 
+                    mapState.strokePoints.push(p); 
                     if(curTool === 'eraser') {
                         drawCtx.globalCompositeOperation = 'destination-out';
-                        drawSmoothPath(drawCtx, strokePoints.slice(-2), 'eraser', parseFloat(widthSlider.value));
+                        drawSmoothPath(drawCtx, mapState.strokePoints.slice(-2), 'eraser', parseFloat(widthSlider.value));
                         drawCtx.globalCompositeOperation = 'source-over';
                     } else {
-                        tempCtx.clearRect(0,0,baseImgW, baseImgH); drawSmoothPath(tempCtx, strokePoints, curTool, parseFloat(widthSlider.value));
+                        tempCtx.clearRect(0,0,baseImgW, baseImgH); drawSmoothPath(tempCtx, mapState.strokePoints, curTool, parseFloat(widthSlider.value));
                     }
-                    redraw(); 
+                    scheduleRedraw(); 
                 }
             }
         });
 
-        cvs.addEventListener('pointerup', () => {
-            if (isPanning) isPanning = false;
-            if (isDrawing && drawMode === 'free') {
-                isDrawing = false; 
+        cvs.addEventListener('pointerup', e => {
+            cvs.releasePointerCapture(e.pointerId);
+            if (mapState.isPanning) mapState.isPanning = false;
+            if (mapState.isDrawing && drawMode === 'free') {
+                mapState.isDrawing = false; 
                 if(curTool !== 'eraser') {
                     if(curTool === 'highlighter') drawCtx.globalAlpha = 0.4;
                     drawCtx.drawImage(tempCanvas, 0, 0); drawCtx.globalAlpha = 1.0; tempCtx.clearRect(0,0,baseImgW, baseImgH);
                 }
-                strokePoints = []; saveHistory(); redraw();
+                mapState.strokePoints = []; saveHistory(); scheduleRedraw();
             }
         });
 
-        // 핀치 줌 로직 
         cvs.addEventListener('touchstart', e => {
             if(e.touches.length === 2) {
                 initialPinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
@@ -555,30 +567,48 @@
                 const cx = (e.touches[0].clientX + e.touches[1].clientX)/2 - cvs.getBoundingClientRect().left;
                 const cy = (e.touches[0].clientY + e.touches[1].clientY)/2 - cvs.getBoundingClientRect().top;
                 panX = cx - (cx - panX) * (newScale / scale); panY = cy - (cy - panY) * (newScale / scale);
-                scale = newScale; redraw();
+                scale = newScale; scheduleRedraw();
             }
         }, {passive: false});
         cvs.addEventListener('touchend', e => { if(e.touches.length < 2) initialPinchDist = null; });
 
+        // --- 💡 3. Redraw 함수 모듈화 (논리적 분리) ---
         function redraw() {
             ctx.fillStyle = "#FFFFFF"; ctx.fillRect(0, 0, cvs.width, cvs.height);
             ctx.save(); ctx.translate(panX, panY); ctx.scale(scale, scale);
             
+            drawBase();
+            drawInk();
+            drawGuide();
+            drawStickers();
+            if (mapState.stickers.length > 0 && showText) drawLegend();
+            
+            ctx.restore();
+        }
+
+        function drawBase() {
             let activeImg = isNationalMap ? nationalImg : mapImg;
             if ((!isNationalMap && !mapImg) || (isNationalMap && !showBaseMap)) {
                 ctx.fillStyle = "#FFFFFF"; ctx.strokeStyle = "#E8E8E8"; ctx.lineWidth = 4;
                 ctx.beginPath(); ctx.roundRect(imgRect.x, imgRect.y, imgRect.w, imgRect.h, 24); ctx.fill(); ctx.stroke();
-            } else if (activeImg) { ctx.drawImage(activeImg, imgRect.x, imgRect.y, imgRect.w, imgRect.h); }
+            } else if (activeImg) { 
+                ctx.drawImage(activeImg, imgRect.x, imgRect.y, imgRect.w, imgRect.h); 
+            }
+        }
 
+        function drawInk() {
             ctx.drawImage(drawCanvas, imgRect.x, imgRect.y, imgRect.w, imgRect.h);
             ctx.drawImage(tempCanvas, imgRect.x, imgRect.y, imgRect.w, imgRect.h);
+        }
 
-            // 점 잇기 가이드
-            if(drawMode === 'point' && lastPoint) {
-                const p = absPt(lastPoint); ctx.beginPath(); ctx.arc(p.x, p.y, 8, 0, Math.PI*2); ctx.fillStyle = "#E74C3C"; ctx.fill();
+        function drawGuide() {
+            if(drawMode === 'point' && mapState.lastPoint) {
+                const p = absPt(mapState.lastPoint); ctx.beginPath(); ctx.arc(p.x, p.y, 8, 0, Math.PI*2); ctx.fillStyle = "#E74C3C"; ctx.fill();
             }
+        }
 
-            stickers.forEach((s, i) => {
+        function drawStickers() {
+            mapState.stickers.forEach((s, i) => {
                 const p = absPt({x: s.realX, y: s.realY}); const ss = s.scale || 1; 
                 ctx.font = `${40 * ss}px sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(s.e, p.x, p.y);
                 if (s.t) {
@@ -586,8 +616,7 @@
                     ctx.strokeText(s.t, p.x, p.y + (30 * ss)); ctx.fillText(s.t, p.x, p.y + (30 * ss));
                 }
                 
-                // 선택된 스티커 삭제 버튼 표시
-                if (selectedStickerIdx === i) {
+                if (mapState.selectedStickerIdx === i) {
                     ctx.strokeStyle = "#5DADE2"; ctx.lineWidth = 3; ctx.setLineDash([8, 8]);
                     ctx.strokeRect(p.x - (35*ss), p.y - (35*ss), 70*ss, 85*ss); ctx.setLineDash([]);
                     
@@ -595,13 +624,10 @@
                     ctx.fillStyle = "white"; ctx.font = `bold ${16*ss}px sans-serif`; ctx.fillText("X", p.x+(25*ss), p.y-(24*ss));
                 }
             });
-
-            if (stickers.length > 0 && showText) drawLegend();
-            ctx.restore();
         }
 
         function drawLegend() {
-            const u = []; stickers.forEach(s => { if(!u.find(x => x.t === s.t)) u.push(s); });
+            const u = []; mapState.stickers.forEach(s => { if(!u.find(x => x.t === s.t)) u.push(s); });
             const w = 150, h = 50 + (u.length * 35), lx = imgRect.x + 20, ly = imgRect.y + 20;
             ctx.fillStyle = "rgba(255,255,255,0.95)"; ctx.strokeStyle = "#D5D8DC"; ctx.lineWidth = 3;
             ctx.beginPath(); ctx.roundRect(lx, ly, w, h, 15); ctx.fill(); ctx.stroke(); 
@@ -610,12 +636,24 @@
             u.forEach((sym, i) => { ctx.font = "20px sans-serif"; ctx.fillText(sym.e, lx + 15, ly + 65 + (i * 35)); ctx.font = "18px 'Jua'"; ctx.fillText(sym.t, lx + 50, ly + 65 + (i * 35)); });
         }
 
+        // 💡 5. 안전한 캡처(Capture) 구조 도입
         function handleAction(type) {
-            const tempSelected = selectedStickerIdx; selectedStickerIdx = -1; // 캡처 시 UI 숨김
+            const tempSelected = mapState.selectedStickerIdx; 
+            const tempScale = scale; const tempPanX = panX; const tempPanY = panY;
+            
+            mapState.selectedStickerIdx = -1; // 캡처 시 X 테두리 UI 숨김
+            scale = Math.min(cvs.width / baseImgW, cvs.height / baseImgH) * 0.95;
+            panX = (cvs.width - baseImgW * scale) / 2;
+            panY = (cvs.height - baseImgH * scale) / 2;
+            
             redraw();
 
             cvs.toBlob(blob => {
-                selectedStickerIdx = tempSelected; redraw();
+                // 비동기 처리 완료 후 무조건 원래 화면 보장 (try-finally 구조 응용)
+                mapState.selectedStickerIdx = tempSelected; 
+                scale = tempScale; panX = tempPanX; panY = tempPanY;
+                scheduleRedraw();
+                
                 if (type === 'submit') {
                     if (window.parent && window.parent.handleMapSave) {
                         const reader = new FileReader(); reader.readAsDataURL(blob);
