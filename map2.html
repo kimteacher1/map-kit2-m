@@ -7,15 +7,7 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Jua&display=swap');
         
-        :root {
-            --primary: #48C9B0; 
-            --primary-hover: #1ABC9C;
-            --bg: #F4F6F6;      
-            --panel: #FFFFFF;
-            --text: #4A4A4A;
-            --border: #E5E7E9;
-            --radius-box: 20px;
-        }
+        :root { --primary: #48C9B0; --primary-hover: #1ABC9C; --bg: #F4F6F6; --panel: #FFFFFF; --text: #4A4A4A; --border: #E5E7E9; --radius-box: 20px;}
 
         * { box-sizing: border-box; user-select: none; -webkit-touch-callout: none; }
         body { font-family: 'Jua', sans-serif; margin: 0; padding: 0; background: var(--bg); display: flex; flex-direction: column; height: 100vh; overflow: hidden; color: var(--text); overscroll-behavior: none; }
@@ -27,7 +19,6 @@
         select { height: 100%; flex: 1; border: 2px solid var(--primary); border-radius: 12px; font-family: 'Jua', sans-serif; font-size: 1.1rem; outline: none; background: #FDFDFD; padding: 0 10px; color: var(--primary); font-weight: bold;}
 
         main { display: flex; position: relative; width: 100vw; height: calc(100vh - 60px); overflow: hidden; }
-        
         #map-viewport { flex: 1; position: relative; background: #FFFFFF; overflow: hidden; touch-action: none; }
         canvas { display: block; width: 100%; height: 100%; touch-action: none; }
         
@@ -45,13 +36,11 @@
 
         aside { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: absolute; z-index: 100; box-shadow: 0 0 20px rgba(0,0,0,0.15); display: flex; flex-direction: column; }
         .panel-toggle { position: absolute; background: var(--panel); box-shadow: 0 2px 10px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; cursor: pointer; font-family: 'Jua', sans-serif; color: var(--primary); font-size: 1.2rem; border: 1px solid #ddd; z-index: 101;}
-        
         .panel-content { flex: 1; display: flex; flex-direction: column; padding: 15px; overflow: hidden; }
         
         .ptab-menu { display: flex; gap: 5px; background: #F0F3F4; padding: 6px; border-radius: 14px; margin-bottom: 15px; flex-shrink: 0;}
         .ptab-btn { flex: 1; padding: 10px; border: none; background: transparent; font-family: 'Jua', sans-serif; font-size: 1.15rem; border-radius: 10px; color: #7F8C8D; cursor: pointer; transition: 0.2s;}
         .ptab-btn.active { background: white; color: var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.05); font-weight: bold;}
-        
         .tab-content { display: none; flex-direction: column; gap: 15px; flex: 1; overflow-y: auto; padding-right: 5px;}
         .tab-content.active { display: flex; }
 
@@ -107,6 +96,7 @@
         .toggle-switch { display: flex; background: #F0F3F4; border-radius: 30px; padding: 4px; }
         .t-btn { padding: 8px 15px; font-size: 1rem; border-radius: 20px; color: #95A5A6; cursor: pointer;}
         .t-btn.active { background: var(--primary); color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1);}
+        #curve-hint { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.7); color: #F1C40F; padding: 8px 20px; border-radius: 20px; font-size: 1.1rem; display: none; z-index: 200; pointer-events: none; }
     </style>
 </head>
 <body>
@@ -124,6 +114,7 @@
 
     <main>
         <div id="map-viewport">
+            <div id="curve-hint">빨간색 점을 드래그하여 조절하세요!</div>
             <div id="loading-msg">지도를 불러오는 중이에요!<br><span style="font-size:1rem; color:#7F8C8D; font-weight:normal;" id="loading-sub"></span></div>
             <canvas id="mapCanvas"></canvas>
             
@@ -225,8 +216,7 @@
         function updateToggleText() {
             const btn = document.getElementById('panel-toggle');
             const isLandscape = window.innerWidth > window.innerHeight;
-            if(isPanelOpen) btn.innerHTML = isLandscape ? '▶ 닫기' : '▼ 닫기';
-            else btn.innerHTML = isLandscape ? '◀ 도구' : '▲ 도구';
+            btn.innerHTML = isPanelOpen ? (isLandscape ? '▶ 닫기' : '▼ 닫기') : (isLandscape ? '◀ 도구' : '▲ 도구');
         }
         window.addEventListener('resize', updateToggleText);
 
@@ -310,17 +300,17 @@
 
         let loadedLayers = {};
         let scale = 1, panX = 0, panY = 0;
-        let isDraggingMap = false, startX, startY;
+        let startX = 0, startY = 0;
         let baseImgW = 1000, baseImgH = 1000;
         
         let curTool = 'pan'; let curColor = '#FF66CC'; let curIcon = null;
         let isDrawing = false; let activeLine = null;
 
-        let stickers = []; let hoverIdx = -1; let showText = true;
+        let stickers = []; let showText = true;
         let selectedStickerIdx = -1; 
 
         function updateStickerSize(val) {
-            if (selectedStickerIdx !== -1) { stickers[selectedStickerIdx].scale = parseFloat(val); redraw(); }
+            if (selectedStickerIdx !== -1 && stickers[selectedStickerIdx]) { stickers[selectedStickerIdx].scale = parseFloat(val); scheduleRedraw(); }
         }
 
         function buildUI(mapPrefix) {
@@ -330,18 +320,18 @@
             layerBox.innerHTML = `
                 <div class="layer-card">
                     <div class="layer-card-top">
-                        <label><input type="checkbox" id="chk-base" checked onchange="redraw()"> 🏞️ ${config.base.name}</label>
+                        <label><input type="checkbox" id="chk-base" checked onchange="scheduleRedraw()"> 🏞️ ${config.base.name}</label>
                     </div>
-                    <input type="range" id="op-base" min="0" max="1" step="0.1" value="1" oninput="redraw()">
+                    <input type="range" id="op-base" min="0" max="1" step="0.1" value="1" oninput="scheduleRedraw()">
                 </div>
             `;
             config.layers.forEach(l => {
                 layerBox.innerHTML += `
                     <div class="layer-card">
                         <div class="layer-card-top">
-                            <label><input type="checkbox" id="chk-${l.id}" onchange="redraw()"> ${l.emoji} ${l.name}</label>
+                            <label><input type="checkbox" id="chk-${l.id}" onchange="scheduleRedraw()"> ${l.emoji} ${l.name}</label>
                         </div>
-                        <input type="range" id="op-${l.id}" min="0" max="1" step="0.1" value="0.8" oninput="redraw()">
+                        <input type="range" id="op-${l.id}" min="0" max="1" step="0.1" value="0.8" oninput="scheduleRedraw()">
                     </div>
                 `;
             });
@@ -380,28 +370,32 @@
             historyStep++; historyStack = historyStack.slice(0, historyStep); stickerHistoryStack = stickerHistoryStack.slice(0, historyStep);
             historyStack.push(drawCtx.getImageData(0, 0, drawCanvas.width, drawCanvas.height));
             stickerHistoryStack.push(JSON.parse(JSON.stringify(stickers)));
-            updateHistoryBtns();
+            updateHistoryBtns(); syncSliderUI();
         }
 
         function undo() {
             if(historyStep > 0) {
-                historyStep--; drawCtx.putImageData(historyStack[historyStep], 0, 0);
-                stickers = JSON.parse(JSON.stringify(stickerHistoryStack[historyStep]));
-                burnActiveCurve(); selectedStickerIdx = -1; redraw(); updateHistoryBtns();
+                historyStep--; drawCtx.putImageData(historyStack[historyStep], 0, 0); stickers = JSON.parse(JSON.stringify(stickerHistoryStack[historyStep]));
+                burnActiveCurve(); selectedStickerIdx = -1; syncSliderUI(); scheduleRedraw();
             }
         }
 
         function redo() {
             if(historyStep < historyStack.length - 1) {
-                historyStep++; drawCtx.putImageData(historyStack[historyStep], 0, 0);
-                stickers = JSON.parse(JSON.stringify(stickerHistoryStack[historyStep]));
-                burnActiveCurve(); selectedStickerIdx = -1; redraw(); updateHistoryBtns();
+                historyStep++; drawCtx.putImageData(historyStack[historyStep], 0, 0); stickers = JSON.parse(JSON.stringify(stickerHistoryStack[historyStep]));
+                burnActiveCurve(); selectedStickerIdx = -1; syncSliderUI(); scheduleRedraw();
             }
         }
 
         function updateHistoryBtns() {
             document.getElementById('btn-undo').style.opacity = historyStep > 0 ? "1" : "0.4";
             document.getElementById('btn-redo').style.opacity = historyStep < historyStack.length - 1 ? "1" : "0.4";
+        }
+
+        function syncSliderUI() {
+            if (selectedStickerIdx !== -1 && stickers[selectedStickerIdx]) {
+                document.getElementById('sticker-size-slider').value = stickers[selectedStickerIdx].scale || 1;
+            }
         }
 
         function setTool(t) {
@@ -414,7 +408,7 @@
                 curIcon = null;
             }
             cvs.style.cursor = (t === 'pan') ? 'grab' : (['icon', 'text-only', 'custom-text'].includes(t) ? 'crosshair' : 'crosshair');
-            selectedStickerIdx = -1; redraw();
+            selectedStickerIdx = -1; scheduleRedraw();
         }
 
         function setColor(color, btn) {
@@ -425,11 +419,11 @@
         function clearDrawings() {
             if(confirm("그린 펜 자국과 스티커를 싹 지울까요? (지도는 유지됩니다)")) {
                 stickers = []; activeCurve = null; drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
-                saveHistory(); redraw();
+                saveHistory(); scheduleRedraw();
             }
         }
 
-        function toggleText() { showText = !showText; document.getElementById('t-leg-on').classList.toggle('active', showText); document.getElementById('t-leg-off').classList.toggle('active', !showText); redraw(); }
+        function toggleText() { showText = !showText; document.getElementById('t-leg-on').classList.toggle('active', showText); document.getElementById('t-leg-off').classList.toggle('active', !showText); scheduleRedraw(); }
 
         window.onload = () => { cvs.width = viewport.clientWidth; cvs.height = viewport.clientHeight; loadMap(); };
 
@@ -462,12 +456,12 @@
         function zoom(factor) {
             const newScale = Math.min(Math.max(0.1, scale * factor), 5);
             const cx = cvs.width / 2; const cy = cvs.height / 2;
-            panX = cx - (cx - panX) * (newScale / scale); panY = cy - (cy - panY) * (newScale / scale); scale = newScale; redraw();
+            panX = cx - (cx - panX) * (newScale / scale); panY = cy - (cy - panY) * (newScale / scale); scale = newScale; scheduleRedraw();
         }
 
         function resetZoom() {
             scale = Math.min(cvs.width / baseImgW, cvs.height / baseImgH) * 0.95;
-            panX = (cvs.width - baseImgW * scale) / 2; panY = (cvs.height - baseImgH * scale) / 2; redraw();
+            panX = (cvs.width - baseImgW * scale) / 2; panY = (cvs.height - baseImgH * scale) / 2; scheduleRedraw();
         }
 
         window.addEventListener('resize', () => { cvs.width = viewport.clientWidth; cvs.height = viewport.clientHeight; resetZoom(); });
@@ -514,14 +508,21 @@
             activeCurve = null; tempCtx.clearRect(0,0,baseImgW, baseImgH); saveHistory();
         }
 
-        let activePointers = []; let initialPinchDist = null; let initialScale = 1;
+        // --- 💡 단일화된 Pointer Event 엔진 ---
+        let activePointers = [];
+        let pinchInitialDist = null; let pinchInitialScale = 1; let pinchCenter = {x:0, y:0}; let pinchInitialPan = {x:0, y:0};
+        let pendingPrompt = null; 
 
         cvs.addEventListener('pointerdown', e => {
-            cvs.setPointerCapture(e.pointerId); activePointers.push({ id: e.pointerId, x: e.clientX, y: e.clientY });
+            cvs.setPointerCapture(e.pointerId);
+            activePointers.push({ id: e.pointerId, x: e.clientX, y: e.clientY });
 
             if (activePointers.length === 2) {
-                initialPinchDist = Math.hypot(activePointers[0].x - activePointers[1].x, activePointers[0].y - activePointers[1].y);
-                initialScale = scale; isDrawing = false; return;
+                const p1 = activePointers[0], p2 = activePointers[1];
+                pinchInitialDist = Math.hypot(p1.x - p2.x, p1.y - p2.y);
+                pinchInitialScale = scale; pinchInitialPan = { x: panX, y: panY };
+                pinchCenter = { x: (p1.x + p2.x) / 2 - cvs.getBoundingClientRect().left, y: (p1.y + p2.y) / 2 - cvs.getBoundingClientRect().top };
+                isDrawing = false; return;
             }
 
             if (activePointers.length === 1) {
@@ -529,40 +530,33 @@
                 const rx = (clkX - panX) / scale; const ry = (clkY - panY) / scale; const p = {x: rx, y: ry};
                 const currentGlobalScale = parseFloat(document.getElementById('sticker-size-slider').value) || 1;
 
-                if (curTool === 'pan') { startX = e.clientX - panX; startY = e.clientY - panY; return; }
-
-                // 1. 스티커 선택, ❌삭제, ✏️수정 처리
                 let clickedSticker = -1;
                 for (let i = stickers.length - 1; i >= 0; i--) {
                     const s = stickers[i]; const sx = s.realX * scale + panX; const sy = s.realY * scale + panY; const sScale = s.scale || 1; 
-                    
                     if (selectedStickerIdx === i) {
-                        // ❌ 삭제 버튼 터치
-                        if (Math.hypot(clkX - (sx+(25*sScale*scale)), clkY - (sy-(25*sScale*scale))) < (30*sScale*scale)) {
-                            stickers.splice(i, 1); selectedStickerIdx = -1; saveHistory(); redraw(); return; 
+                        let boxW = 70 * sScale * scale; let oy = 35 * sScale * scale;
+                        if(s.type === 'text-only') { ctx.font = `bold ${30 * sScale * scale}px 'Jua'`; boxW = ctx.measureText(s.text).width + 30*sScale*scale; oy = 25*sScale*scale; }
+                        
+                        if (Math.hypot(clkX - (sx+(boxW/2)), clkY - (sy-oy)) < (30*sScale*scale)) {
+                            stickers.splice(i, 1); selectedStickerIdx = -1; saveHistory(); scheduleRedraw(); return; 
                         }
-                        // ✏️ 수정 버튼 터치
-                        if (Math.hypot(clkX - (sx-(25*sScale*scale)), clkY - (sy-(25*sScale*scale))) < (30*sScale*scale)) {
-                            // 💡 비동기 처리로 포인터 이벤트 블로킹 방지 및 이중 팝업 차단
-                            setTimeout(() => {
-                                const currentName = s.type === 'text-only' ? s.text : s.t;
-                                const newName = prompt("내용을 변경하세요:", currentName);
-                                if (newName !== null && newName.trim() !== "") {
-                                    if (s.type === 'text-only') s.text = newName.trim(); else s.t = newName.trim();
-                                    saveHistory(); redraw();
-                                }
-                            }, 10);
-                            return; 
+                        if (Math.hypot(clkX - (sx-(boxW/2)), clkY - (sy-oy)) < (30*sScale*scale)) {
+                            pendingPrompt = { type: 'edit', idx: i }; return; 
                         }
                     }
-                    if (Math.hypot(clkX - sx, clkY - sy) < (40*sScale*scale)) { clickedSticker = i; break; }
+                    if (s.type === 'text-only') {
+                        ctx.font = `bold ${30 * sScale * scale}px 'Jua'`; const tw = ctx.measureText(s.text).width;
+                        if(Math.abs(clkX - sx) < tw/2 + 20 && Math.abs(clkY - sy) < 30 * sScale * scale) { clickedSticker = i; break; }
+                    } else {
+                        if (Math.hypot(clkX - sx, clkY - sy) < (40*sScale*scale)) { clickedSticker = i; break; }
+                    }
                 }
 
-                if(clickedSticker !== -1) {
-                    selectedStickerIdx = clickedSticker; document.getElementById('sticker-size-slider').value = stickers[selectedStickerIdx].scale || 1; redraw(); return; 
-                } else { selectedStickerIdx = -1; }
+                if(clickedSticker !== -1) { selectedStickerIdx = clickedSticker; syncSliderUI(); scheduleRedraw(); return; } 
+                else { selectedStickerIdx = -1; }
 
-                // 2. 조절점(화살표 A안) 처리
+                if (curTool === 'pan') { startX = e.clientX - panX; startY = e.clientY - panY; return; }
+
                 if (['arrow-curve', 'arrow-straight'].includes(curTool)) {
                     if (activeCurve) {
                         const r = 35 / scale;
@@ -572,94 +566,93 @@
                         else { burnActiveCurve(); startNewCurve(p, curTool); } 
                     } else { startNewCurve(p, curTool); }
                     return;
+                } 
+
+                if(['free', 'eraser'].includes(curTool)) {
+                    if (activeCurve) burnActiveCurve(); 
+                    isDrawing = true; activeLine = { type: curTool, color: curColor, pts: [p] };
+                    if(curTool === 'eraser') { const w = parseFloat(document.getElementById('line-width-slider').value); drawCtx.globalCompositeOperation = 'destination-out'; drawSmoothLine(drawCtx, [p, p], 'eraser', null, w); drawCtx.globalCompositeOperation = 'source-over'; scheduleRedraw(); }
                 }
 
-                // 3. 일반 드로잉
-                const drawTools = ['free', 'eraser'];
-                if(drawTools.includes(curTool)) {
-                    if (activeCurve) burnActiveCurve();
-                    isDrawing = true; activeLine = { type: curTool, color: curColor, pts: [p] };
-                    if(curTool === 'eraser') {
-                        const w = parseFloat(document.getElementById('line-width-slider').value);
-                        drawCtx.globalCompositeOperation = 'destination-out';
-                        drawSmoothLine(drawCtx, [p, p], 'eraser', null, w);
-                        drawCtx.globalCompositeOperation = 'source-over'; redraw();
-                    }
-                }
-                
-                // 4. 💡 아이콘 / 텍스트 추가 (무한 팝업 버그 해결)
-                if (curTool === 'custom-text') {
-                    setTool('pan'); // 즉시 pan 모드로 변경 (상태 고착화 차단)
-                    setTimeout(() => { // 비동기 처리로 포인터 블로킹 차단
-                        const txt = prompt("지도에 표시할 글씨를 직접 입력하세요:");
-                        if (txt && txt.trim() !== '') {
-                            stickers.push({ type: 'text-only', text: txt.trim(), realX: rx, realY: ry, scale: currentGlobalScale });
-                            selectedStickerIdx = stickers.length - 1; saveHistory(); redraw();
-                        }
-                    }, 10);
-                }
-                else if (['icon', 'text-only'].includes(curTool) && curIcon) {
-                    setTool('pan'); // 찍자마자 도구 강제 해제
-                    if (curTool === 'text-only') { stickers.push({ type: 'text-only', text: curIcon.text, realX: rx, realY: ry, scale: currentGlobalScale }); } 
-                    else { stickers.push({ type: 'icon', e: curIcon.e, t: curIcon.t, realX: rx, realY: ry, scale: currentGlobalScale }); }
-                    selectedStickerIdx = stickers.length - 1; saveHistory(); redraw();
-                }
+                if (curTool === 'custom-text') { setTool('pan'); pendingPrompt = { type: 'create_custom', x: rx, y: ry, scale: currentGlobalScale }; return; } 
+                else if (['icon', 'text-only'].includes(curTool) && curIcon) { setTool('pan'); pendingPrompt = { type: 'create_preset', x: rx, y: ry, scale: currentGlobalScale, icon: curIcon, curTool: curTool }; return; }
             }
         });
 
         function startNewCurve(p, type) {
+            document.getElementById('curve-hint').style.display = 'block';
             activeCurve = { type: type, color: curColor, w: parseFloat(document.getElementById('line-width-slider').value), p0: {x: p.x, y: p.y}, p2: {x: p.x, y: p.y}, p1: type === 'arrow-curve' ? {x: p.x, y: p.y} : null };
-            draggedPoint = 'p2'; redraw();
+            draggedPoint = 'p2'; scheduleRedraw();
         }
 
         cvs.addEventListener('pointermove', e => {
             const idx = activePointers.findIndex(p => p.id === e.pointerId);
             if (idx !== -1) { activePointers[idx].x = e.clientX; activePointers[idx].y = e.clientY; }
 
-            if (activePointers.length === 2 && initialPinchDist) {
-                const dist = Math.hypot(activePointers[0].x - activePointers[1].x, activePointers[0].y - activePointers[1].y);
-                const newScale = Math.min(Math.max(0.1, initialScale * (dist / initialPinchDist)), 5);
-                const cx = (activePointers[0].x + activePointers[1].x)/2 - cvs.getBoundingClientRect().left;
-                const cy = (activePointers[0].y + activePointers[1].y)/2 - cvs.getBoundingClientRect().top;
-                panX = cx - (cx - panX) * (newScale / scale); panY = cy - (cy - panY) * (newScale / scale); scale = newScale; redraw();
-                return;
+            if (activePointers.length === 2 && pinchInitialDist) {
+                const p1 = activePointers[0], p2 = activePointers[1];
+                const dist = Math.hypot(p1.x - p2.x, p1.y - p2.y);
+                const newScale = Math.min(Math.max(0.1, pinchInitialScale * (dist / pinchInitialDist)), 5);
+                const currentCx = (p1.x + p2.x) / 2 - cvs.getBoundingClientRect().left; const currentCy = (p1.y + p2.y) / 2 - cvs.getBoundingClientRect().top;
+                panX = currentCx - (pinchCenter.x - pinchInitialPan.x) * (newScale / pinchInitialScale); panY = currentCy - (pinchCenter.y - pinchInitialPan.y) * (newScale / pinchInitialScale);
+                scale = newScale; scheduleRedraw(); return;
             }
 
             if (activePointers.length === 1) {
-                if (curTool === 'pan') { panX = e.clientX - startX; panY = e.clientY - startY; redraw(); return; }
+                if (curTool === 'pan') { panX = e.clientX - startX; panY = e.clientY - startY; scheduleRedraw(); return; }
                 const rx = (e.clientX - cvs.getBoundingClientRect().left - panX) / scale; const ry = (e.clientY - cvs.getBoundingClientRect().top - panY) / scale; const p = {x: rx, y: ry};
 
                 if (activeCurve && draggedPoint) {
                     activeCurve[draggedPoint] = p;
                     if (curTool === 'arrow-curve' && draggedPoint === 'p2' && !activeCurve.p1_moved) { activeCurve.p1 = { x: (activeCurve.p0.x + p.x)/2, y: (activeCurve.p0.y + p.y)/2 }; }
-                    if (draggedPoint === 'p1') activeCurve.p1_moved = true; redraw(); return;
+                    if (draggedPoint === 'p1') activeCurve.p1_moved = true; 
+                    scheduleRedraw(); return;
                 }
 
                 if (isDrawing && activeLine) {
                     activeLine.pts.push(p); const w = parseFloat(document.getElementById('line-width-slider').value);
                     if(curTool === 'eraser') { drawSmoothLine(drawCtx, activeLine.pts.slice(-2), 'eraser', null, w); } 
                     else { tempCtx.clearRect(0,0,baseImgW, baseImgH); drawSmoothLine(tempCtx, activeLine.pts, curTool, curColor, w); }
-                    redraw(); 
+                    scheduleRedraw(); 
                 }
             }
         });
 
-        cvs.addEventListener('pointerup', e => {
-            cvs.releasePointerCapture(e.pointerId);
-            activePointers = activePointers.filter(p => p.id !== e.pointerId);
-            if (activePointers.length < 2) initialPinchDist = null;
+        cvs.addEventListener('pointerup', handlePointerEnd); cvs.addEventListener('pointercancel', handlePointerEnd); cvs.addEventListener('mouseleave', handlePointerEnd);
+
+        function handlePointerEnd(e) {
+            cvs.releasePointerCapture(e.pointerId); activePointers = activePointers.filter(p => p.id !== e.pointerId);
+            if (activePointers.length < 2) pinchInitialDist = null;
 
             if (activePointers.length === 0) {
-                if (activeCurve && draggedPoint) { draggedPoint = null; redraw(); return; }
+                if (activeCurve && draggedPoint) { draggedPoint = null; scheduleRedraw(); return; }
                 if (isDrawing && activeLine) {
-                    isDrawing = false; 
-                    if(curTool !== 'eraser') {
-                        drawCtx.globalCompositeOperation = 'source-over'; drawCtx.drawImage(tempCanvas, 0, 0); tempCtx.clearRect(0,0,baseImgW, baseImgH);
-                    }
-                    saveHistory(); activeLine = null; redraw();
+                    isDrawing = false;
+                    if (curTool !== 'eraser') { drawCtx.globalCompositeOperation = 'source-over'; drawCtx.drawImage(tempCanvas, 0, 0); tempCtx.clearRect(0,0,baseImgW, baseImgH); saveHistory(); } 
+                    else { saveHistory(); }
+                    activeLine = null; scheduleRedraw();
                 }
+                if (pendingPrompt) { setTimeout(() => { processPendingPrompt(pendingPrompt); pendingPrompt = null; }, 10); }
             }
-        });
+        }
+
+        function processPendingPrompt(data) {
+            if (data.type === 'edit') {
+                const s = stickers[data.idx]; const currentName = s.type === 'text-only' ? s.text : s.t;
+                const newName = prompt("내용을 변경하세요:", currentName);
+                if (newName && newName.trim() !== "") { if (s.type === 'text-only') s.text = newName.trim(); else s.t = newName.trim(); saveHistory(); scheduleRedraw(); }
+            } else if (data.type === 'create_custom') {
+                const txt = prompt("지도에 표시할 글씨를 직접 입력하세요:");
+                if (txt && txt.trim() !== '') { stickers.push({ type: 'text-only', text: txt.trim(), realX: data.x, realY: data.y, scale: data.scale }); selectedStickerIdx = stickers.length - 1; saveHistory(); scheduleRedraw(); }
+            } else if (data.type === 'create_preset') {
+                if (data.curTool === 'text-only') { stickers.push({ type: 'text-only', text: data.icon.text, realX: data.x, realY: data.y, scale: data.scale }); } 
+                else { stickers.push({ type: 'icon', e: data.icon.e, t: data.icon.t, realX: data.x, realY: data.y, scale: data.scale }); }
+                selectedStickerIdx = stickers.length - 1; saveHistory(); scheduleRedraw();
+            }
+        }
+
+        let isRedrawing = false;
+        function scheduleRedraw() { if(!isRedrawing) { requestAnimationFrame(() => { redraw(); isRedrawing = false; }); isRedrawing = true; } }
 
         function redraw() {
             ctx.fillStyle = "#FFFFFF"; ctx.fillRect(0, 0, cvs.width, cvs.height);
@@ -669,21 +662,17 @@
 
             ctx.save(); ctx.translate(panX, panY); ctx.scale(scale, scale);
             
-            const config = mapConfigs[document.getElementById('map-region').value];
-            const renderQueue = ['base', ...config.layers.map(l=>l.id)];
-            
+            const config = mapConfigs[document.getElementById('map-region').value]; const renderQueue = ['base', ...config.layers.map(l=>l.id)];
             renderQueue.forEach(key => {
                 if (loadedLayers[key] && loadedLayers[key].naturalWidth) {
-                    const chk = document.getElementById(`chk-${key}`);
-                    if (chk && chk.checked) { ctx.globalAlpha = parseFloat(document.getElementById(`op-${key}`).value); ctx.drawImage(loadedLayers[key], 0, 0, w, h); }
+                    const chk = document.getElementById(`chk-${key}`); if (chk && chk.checked) { ctx.globalAlpha = parseFloat(document.getElementById(`op-${key}`).value); ctx.drawImage(loadedLayers[key], 0, 0, w, h); }
                 }
             });
             
             ctx.globalAlpha = 1.0; ctx.drawImage(drawCanvas, 0, 0, w, h); ctx.drawImage(tempCanvas, 0, 0, w, h);
 
             if (activeCurve) {
-                tempCtx.clearRect(0,0,baseImgW, baseImgH);
-                drawSmoothLine(tempCtx, [activeCurve.p0, activeCurve.p2], activeCurve.type, activeCurve.color, activeCurve.w, activeCurve.p1);
+                tempCtx.clearRect(0,0,baseImgW, baseImgH); drawSmoothLine(tempCtx, [activeCurve.p0, activeCurve.p2], activeCurve.type, activeCurve.color, activeCurve.w, activeCurve.p1);
                 
                 ctx.setLineDash([5, 5]); ctx.strokeStyle = '#3498DB'; ctx.lineWidth = 2 / scale;
                 if (activeCurve.type === 'arrow-curve') { ctx.beginPath(); ctx.moveTo(activeCurve.p0.x, activeCurve.p0.y); ctx.lineTo(activeCurve.p1.x, activeCurve.p1.y); ctx.lineTo(activeCurve.p2.x, activeCurve.p2.y); ctx.stroke(); }
@@ -694,49 +683,44 @@
                     ctx.beginPath(); ctx.arc(pt.x, pt.y, 15 / scale, 0, Math.PI*2); ctx.fill(); ctx.stroke();
                     ctx.fillStyle = '#E74C3C'; ctx.font = `bold ${14/scale}px sans-serif`; ctx.fillText(label, pt.x, pt.y - 25/scale);
                 };
-                drawHandle(activeCurve.p0, "시작"); drawHandle(activeCurve.p2, "끝");
-                if (activeCurve.type === 'arrow-curve') drawHandle(activeCurve.p1, "곡률");
+                drawHandle(activeCurve.p0, "시작"); drawHandle(activeCurve.p2, "끝"); if (activeCurve.type === 'arrow-curve') drawHandle(activeCurve.p1, "곡률");
             }
 
             stickers.forEach((s, i) => {
-                const sx = s.realX; const sy = s.realY; const sScale = s.scale || 1; 
+                const p = absPt({x: s.realX, y: s.realY}); const ss = s.scale || 1; 
 
                 ctx.textAlign = "center"; ctx.textBaseline = "middle";
-                if (s.type === 'text-only') {
-                    ctx.font = `bold ${30 * sScale}px 'Jua'`; ctx.fillStyle = "#154360"; ctx.strokeStyle = "rgba(255,255,255,0.95)"; ctx.lineWidth = 6 * sScale;
-                    ctx.strokeText(s.text, sx, sy); ctx.fillText(s.text, sx, sy);
-                } else {
-                    ctx.font = `${45 * sScale}px sans-serif`; ctx.fillText(s.e, sx, sy);
-                    if (s.t) {
-                        ctx.font = `bold ${18 * sScale}px 'Jua'`; ctx.fillStyle = "#2C3E50"; ctx.strokeStyle = "white"; ctx.lineWidth = 5 * sScale;
-                        ctx.strokeText(s.t, sx, sy + (35 * sScale)); ctx.fillText(s.t, sx, sy + (35 * sScale));
-                    }
-                }
+                if (s.type === 'text-only') { ctx.font = `bold ${30 * ss}px 'Jua'`; ctx.fillStyle = "#154360"; ctx.strokeStyle = "rgba(255,255,255,0.95)"; ctx.lineWidth = 6 * ss; ctx.strokeText(s.text, p.x, p.y); ctx.fillText(s.text, p.x, p.y); } 
+                else { ctx.font = `${45 * ss}px sans-serif`; ctx.fillText(s.e, p.x, p.y); if (s.t) { ctx.font = `bold ${18 * ss}px 'Jua'`; ctx.fillStyle = "#2C3E50"; ctx.strokeStyle = "white"; ctx.lineWidth = 5 * ss; ctx.strokeText(s.t, p.x, p.y + (35 * ss)); ctx.fillText(s.t, p.x, p.y + (35 * ss)); } }
 
                 if (selectedStickerIdx === i) {
-                    ctx.strokeStyle = "#5DADE2"; ctx.lineWidth = 3; ctx.setLineDash([8, 8]); ctx.strokeRect(sx - (35*sScale), sy - (35*sScale), 70*sScale, 85*sScale); ctx.setLineDash([]);
+                    let boxW = 70 * ss; let boxH = 85 * ss; let oy = 35 * ss;
+                    if(s.type === 'text-only') { ctx.font = `bold ${30 * ss}px 'Jua'`; boxW = ctx.measureText(s.text).width + 30*ss; boxH = 50*ss; oy = 25*ss; }
+                    ctx.strokeStyle = "#5DADE2"; ctx.lineWidth = 3; ctx.setLineDash([8, 8]);
+                    ctx.strokeRect(p.x - boxW/2, p.y - oy, boxW, boxH); ctx.setLineDash([]);
                     
-                    ctx.fillStyle = "#E74C3C"; ctx.beginPath(); ctx.arc(sx+(25*sScale), sy-(25*sScale), 16*sScale, 0, Math.PI*2); ctx.fill();
-                    ctx.fillStyle = "white"; ctx.font = `bold ${16*sScale}px sans-serif`; ctx.fillText("X", sx+(25*sScale), sy-(24*sScale));
+                    ctx.fillStyle = "#E74C3C"; ctx.beginPath(); ctx.arc(p.x+(boxW/2), p.y-oy, 16*ss, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = "white"; ctx.font = `bold ${16*ss}px sans-serif`; ctx.fillText("X", p.x+(boxW/2), p.y-oy+1);
                     
-                    ctx.fillStyle = "#3498DB"; ctx.beginPath(); ctx.arc(sx-(25*sScale), sy-(25*sScale), 16*sScale, 0, Math.PI*2); ctx.fill();
-                    ctx.fillStyle = "white"; ctx.font = `14px sans-serif`; ctx.fillText("✏️", sx-(25*sScale), sy-(24*sScale));
+                    ctx.fillStyle = "#3498DB"; ctx.beginPath(); ctx.arc(p.x-(boxW/2), p.y-oy, 16*ss, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = "white"; ctx.font = `14px sans-serif`; ctx.fillText("✏️", p.x-(boxW/2), p.y-oy+1);
                 }
             });
-
-            if (stickers.length > 0 && showText) drawLegend();
             ctx.restore();
         }
 
         function drawLegend() {
-            const u = []; stickers.forEach(s => { if(!u.find(x => x.t === s.t)) u.push(s); });
+            const u = []; stickers.forEach(s => { const label = s.type === 'text-only' ? s.text : s.t; if(!u.find(x => (x.type==='text-only'?x.text:x.t) === label)) u.push(s); });
             if (u.length === 0 || !showText) return;
-            const w = 130, h = 45 + (u.length * 30), lx = 20, ly = 20;
+            const w = 150, h = 50 + (u.length * 35), lx = 20, ly = 20; 
             ctx.fillStyle = "rgba(255,255,255,0.95)"; ctx.strokeStyle = "#D5D8DC"; ctx.lineWidth = 3;
             ctx.beginPath(); ctx.roundRect(lx, ly, w, h, 15); ctx.fill(); ctx.stroke(); 
-            ctx.fillStyle = "#117A65"; ctx.font = "20px 'Jua'"; ctx.textAlign = "center"; ctx.fillText("🔍 기호 범례", lx + w/2, ly + 25);
+            ctx.fillStyle = "#117A65"; ctx.font = "22px 'Jua'"; ctx.textAlign = "center"; ctx.fillText("🔍 기호 범례", lx + w/2, ly + 30);
             ctx.textAlign = "left"; ctx.fillStyle = "#4A4A4A";
-            u.forEach((sym, i) => { ctx.font = "18px sans-serif"; ctx.fillText(sym.e, lx + 15, ly + 55 + (i * 30)); ctx.font = "16px 'Jua'"; ctx.fillText(sym.t, lx + 45, ly + 55 + (i * 30)); });
+            u.forEach((sym, i) => { 
+                if(sym.type === 'text-only') { ctx.font = "bold 18px 'Jua'"; ctx.fillText(sym.text, lx + 30, ly + 65 + (i * 35)); }
+                else { ctx.font = "20px sans-serif"; ctx.fillText(sym.e, lx + 15, ly + 65 + (i * 35)); ctx.font = "18px 'Jua'"; ctx.fillText(sym.t, lx + 50, ly + 65 + (i * 35)); }
+            });
         }
 
         function handleAction(type) {
@@ -747,11 +731,10 @@
                     if (window.parent && window.parent.handleMapSave) {
                         const reader = new FileReader(); reader.readAsDataURL(blob);
                         reader.onloadend = function() { window.parent.handleMapSave(reader.result, "지도 겹치기"); }
-                    } else { alert("런처(메인화면)를 통해서 접속해야 제출이 가능합니다."); }
+                    } else { alert("런처를 통해 접속해야 제출이 가능합니다."); }
                 } else if (type === 'download') {
-                    const mapName = document.getElementById('map-region').value;
-                    const url = URL.createObjectURL(blob); const a = document.createElement('a'); 
-                    a.href = url; a.download = `${mapName}_분석.jpg`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+                    const mapName = document.getElementById('map-region').value; const url = URL.createObjectURL(blob); 
+                    const a = document.createElement('a'); a.href = url; a.download = `${mapName}_분석.jpg`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
                 }
             }, 'image/jpeg', 0.95);
         }
