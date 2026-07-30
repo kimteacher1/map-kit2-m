@@ -3,97 +3,109 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>&lt;MAP KIT&gt; 백지도 그리기 (태블릿)</title>
+    <title>&lt;MAP KIT&gt; 백지도 그리기 (태블릿 최적화)</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Jua&display=swap');
         
         :root {
-            --primary: #5DADE2; --primary-hover: #3498DB; --bg: #FFF5F5; --panel: #FFFFFF;
-            --text: #4A4A4A; --border: #E8E8E8; --radius-btn: 16px; --radius-box: 20px;   
+            --primary: #5DADE2; --primary-hover: #3498DB; --bg: #F4F6F7; --panel: #FFFFFF;
+            --text: #2C3E50; --border: #E8E8E8; --radius-box: 20px;
         }
 
-        /* 터치 액션 및 드래그 새로고침 차단 */
         * { box-sizing: border-box; user-select: none; -webkit-touch-callout: none; }
         body { font-family: 'Jua', sans-serif; margin: 0; padding: 0; background: var(--bg); display: flex; flex-direction: column; height: 100vh; overflow: hidden; color: var(--text); overscroll-behavior: none; }
 
-        header { background: var(--panel); padding: 12px 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.04); display: flex; justify-content: space-between; align-items: center; z-index: 10; flex-wrap: nowrap; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch;}
-        
-        .menu-group { display: flex; gap: 10px; flex: 1; align-items: center; }
-        select { height: 48px; padding: 0 15px; border-radius: var(--radius-btn); border: 2px solid var(--border); font-size: 1.2rem; font-family: 'Jua', sans-serif; outline: none; background: #FDFDFD; }
-        
-        .btn-header { padding: 12px 20px; font-size: 1.2rem; cursor: pointer; border-radius: var(--radius-btn); font-family: 'Jua', sans-serif; border: none; font-weight: bold; flex-shrink: 0;}
-        .btn-back { background: #E74C3C; color: white; }
-        
-        .toggle-container { display: flex; background: #F0F3F4; border-radius: 30px; padding: 4px; flex-shrink: 0; margin-left: 10px;}
-        .toggle-btn { padding: 12px 20px; font-size: 1.1rem; cursor: pointer; color: #95A5A6; border-radius: 26px; }
-        .toggle-btn.active { background: var(--primary); color: white; box-shadow: 0 2px 8px rgba(93, 173, 226, 0.4); }
+        /* 💡 1. 초슬림 헤더 */
+        header { background: var(--panel); padding: 8px 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: flex; align-items: center; z-index: 100; height: 60px; flex-shrink: 0; gap: 10px;}
+        .btn-back { background: #E74C3C; color: white; border: none; padding: 8px 15px; border-radius: 12px; font-family: 'Jua', sans-serif; font-size: 1.1rem; cursor: pointer; height: 100%; white-space: nowrap;}
+        .select-group { display: flex; gap: 8px; height: 100%; flex: 1; }
+        select { flex: 1; border: 2px solid var(--border); border-radius: 12px; font-family: 'Jua', sans-serif; font-size: 1.1rem; outline: none; background: #FDFDFD; padding: 0 10px; color: var(--text);}
 
-        /* 기기 방향(가로/세로)에 따른 반응형 레이아웃 */
-        main { flex: 1; display: flex; overflow: hidden; padding: 10px; gap: 10px; flex-direction: row; }
+        /* 💡 2. 지도 및 반응형 패널 레이아웃 */
+        main { display: flex; position: relative; width: 100vw; height: calc(100vh - 60px); overflow: hidden; }
         
-        /* 세로 모드일 때는 도구 패널을 하단(Bottom Sheet)으로 이동 */
-        @media (max-aspect-ratio: 4/3) {
-            main { flex-direction: column; }
-            aside { max-width: 100% !important; height: 40vh; flex-direction: row !important; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-            .tool-section { min-width: 320px; flex-shrink: 0; border-right: 2px dashed var(--border); padding-right: 15px; margin-right: 15px;}
-            .tool-section:last-child { border-right: none; }
-        }
-
-        #map-stage { flex: 1; position: relative; background: white; border-radius: var(--radius-box); box-shadow: 0 4px 15px rgba(0,0,0,0.06); overflow: hidden; touch-action: none; }
+        #map-stage { flex: 1; position: relative; background: white; overflow: hidden; touch-action: none; }
         canvas { display: block; width: 100%; height: 100%; touch-action: none; }
         
-        #loading-msg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 1.5rem; color: var(--primary); display: none; background: rgba(255,255,255,0.9); padding: 15px 30px; border-radius: 30px; z-index: 100; }
+        #loading-msg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 1.5rem; color: var(--primary); display: none; background: rgba(255,255,255,0.95); padding: 15px 30px; border-radius: 30px; z-index: 100; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 2px solid var(--primary);}
         #toast-msg { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); font-size: 1.2rem; color: white; display: none; background: rgba(44, 62, 80, 0.85); padding: 12px 30px; border-radius: 20px; z-index: 100; }
 
-        .zoom-controls { position: absolute; bottom: 20px; right: 20px; z-index: 50; display: flex; flex-direction: column; gap: 8px; }
-        .zoom-btn { background: white; border: 2px solid var(--border); border-radius: 12px; padding: 12px 0; font-size: 1.2rem; cursor: pointer; font-family: 'Jua', sans-serif; width: 60px; font-weight: bold; }
+        /* 💡 3. 좌측 하단 줌, 우측 하단 제출 플로팅 버튼 */
+        .zoom-controls { position: absolute; bottom: 20px; left: 20px; display: flex; flex-direction: column; gap: 8px; z-index: 50; transition: bottom 0.3s; }
+        .zoom-btn { background: white; border: 2px solid var(--border); border-radius: 50%; width: 50px; height: 50px; font-size: 1.5rem; cursor: pointer; font-family: 'Jua', sans-serif; font-weight: bold; color: var(--text); box-shadow: 0 4px 10px rgba(0,0,0,0.1);}
+        .zoom-btn-rect { border-radius: 12px; width: 50px; height: 40px; font-size: 1rem;}
 
-        aside { max-width: 380px; background: var(--panel); border-radius: var(--radius-box); padding: 15px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; }
-        .tool-section { display: flex; flex-direction: column; }
-        .tool-section h3 { margin: 0 0 10px 0; font-size: 1.2rem; color: var(--primary); text-align: center; }
+        .action-controls { position: absolute; bottom: 20px; right: 20px; display: flex; flex-direction: column; align-items: flex-end; gap: 15px; z-index: 50; transition: bottom 0.3s, right 0.3s; }
+        .fab-btn { border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.2); cursor: pointer; display: flex; justify-content: center; align-items: center; font-family: 'Jua', sans-serif; color: white; transition: 0.2s;}
+        .fab-submit { background: var(--primary); width: 75px; height: 75px; font-size: 1.3rem; border-radius: 25px; font-weight: bold; flex-direction: column; gap: 2px;}
+        .fab-submit:active { transform: scale(0.95); background: var(--primary-hover); }
+        .fab-save { background: #95A5A6; width: 50px; height: 50px; border-radius: 50%; font-size: 1.4rem; }
+
+        /* 💡 4. 도구 패널 (Bottom Sheet / Side Panel) */
+        aside { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: absolute; z-index: 100; box-shadow: 0 0 20px rgba(0,0,0,0.15); display: flex; flex-direction: column; }
+        .panel-toggle { position: absolute; background: var(--panel); box-shadow: 0 2px 10px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; cursor: pointer; font-family: 'Jua', sans-serif; color: var(--primary); font-size: 1.2rem; border: 1px solid #ddd; z-index: 101;}
         
-        .btn-grid { display: grid; gap: 8px; margin-bottom: 8px; }
-        .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
-        .grid-2 { grid-template-columns: 1fr 1fr; }
+        .panel-content { flex: 1; display: flex; flex-direction: column; padding: 15px; overflow: hidden; }
         
-        .tool-btn { padding: 14px 4px; border: 2px solid var(--border); border-radius: 14px; background: white; cursor: pointer; font-size: 1.15rem; font-family: 'Jua', sans-serif; color: var(--text); }
+        /* 패널 3단 탭 메뉴 */
+        .ptab-menu { display: flex; gap: 5px; background: #F0F3F4; padding: 6px; border-radius: 14px; margin-bottom: 15px; flex-shrink: 0;}
+        .ptab-btn { flex: 1; padding: 10px; border: none; background: transparent; font-family: 'Jua', sans-serif; font-size: 1.15rem; border-radius: 10px; color: #7F8C8D; cursor: pointer; transition: 0.2s;}
+        .ptab-btn.active { background: white; color: var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.05); font-weight: bold;}
+        
+        .tab-content { display: none; flex-direction: column; gap: 15px; flex: 1; overflow-y: auto; padding-right: 5px;}
+        .tab-content.active { display: flex; }
+
+        /* 반응형: 가로 모드 (Right Side Panel) */
+        @media (orientation: landscape) {
+            aside { right: 0; top: 0; height: 100%; width: 340px; transform: translateX(340px); border-left: 1px solid #ddd; border-top-left-radius: 20px; border-bottom-left-radius: 20px;}
+            aside.open { transform: translateX(0); }
+            .panel-toggle { left: -45px; top: 50%; transform: translateY(-50%); width: 45px; height: 110px; border-radius: 16px 0 0 16px; border-right: none; writing-mode: vertical-rl; text-orientation: mixed; letter-spacing: 2px;}
+            body.panel-open .action-controls { right: calc(340px + 20px); }
+        }
+
+        /* 반응형: 세로 모드 (Bottom Sheet) */
+        @media (orientation: portrait) {
+            aside { bottom: 0; left: 0; width: 100%; height: 45vh; transform: translateY(45vh); border-top: 1px solid #ddd; border-top-left-radius: 24px; border-top-right-radius: 24px;}
+            aside.open { transform: translateY(0); }
+            .panel-toggle { top: -45px; left: 50%; transform: translateX(-50%); width: 130px; height: 45px; border-radius: 16px 16px 0 0; border-bottom: none;}
+            body.panel-open .action-controls, body.panel-open .zoom-controls { bottom: calc(45vh + 20px); }
+        }
+
+        /* 도구 내부 UI 요소들 */
+        .btn-grid { display: grid; gap: 8px; }
+        .grid-3 { grid-template-columns: repeat(3, 1fr); }
+        .grid-2 { grid-template-columns: repeat(2, 1fr); }
+        
+        .tool-btn { padding: 14px 5px; border: 2px solid var(--border); border-radius: 14px; background: white; cursor: pointer; font-size: 1.1rem; font-family: 'Jua', sans-serif; color: var(--text); }
         .tool-btn.selected { border-color: var(--primary); background: #EBF5FB; color: var(--primary-hover); }
-        .action-btn { background: #F4F6F7; border-color: #D5D8DC; }
-        .btn-danger { color: #E74C3C; font-weight: bold; }
+        .btn-danger { color: #E74C3C; font-weight: bold; background: #FDEDEC; border-color: #F5B7B1;}
+        .action-btn { background: #F8F9F9; border-color: #D5D8DC; }
 
-        .slider-container { display: flex; align-items: center; gap: 10px; background: #F8F9F9; padding: 12px; border-radius: 14px; border: 1px solid var(--border); margin-bottom: 5px;}
+        .slider-container { display: flex; align-items: center; gap: 12px; background: #F8F9F9; padding: 12px 15px; border-radius: 14px; border: 1px solid var(--border);}
         .slider-container label { font-size: 1.1rem; color: var(--primary); white-space: nowrap; font-weight:bold;}
         .slider-container input[type="range"] { flex: 1; accent-color: var(--primary); }
 
-        .category-tab-menu { display: flex; gap: 4px; margin-bottom: 8px; flex-shrink: 0; }
-        .cat-tab-btn { flex: 1; padding: 12px 2px; font-size: 1.1rem; border: none; background: #F0F3F4; border-radius: 12px; font-family: 'Jua', sans-serif; }
-        .cat-tab-btn.active { background: #EBF5FB; color: var(--primary-hover); border: 2px solid var(--primary); }
+        .cat-tab-menu { display: flex; gap: 4px; flex-shrink: 0; }
+        .cat-btn { flex: 1; padding: 10px 2px; font-size: 1.05rem; border: none; background: #F0F3F4; border-radius: 10px; font-family: 'Jua', sans-serif; color: #7F8C8D;}
+        .cat-btn.active { background: #EBF5FB; color: var(--primary-hover); border: 2px solid var(--primary); font-weight:bold;}
 
-        .sticker-list { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; overflow-y: auto; flex: 1; min-height: 150px;}
-        .sticker-item { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 65px; border: 2px solid transparent; border-radius: 12px; font-size: 0.9rem; background: #FDFDFD; box-shadow: 0 2px 5px rgba(0,0,0,0.05); text-align:center;}
-        .sticker-item.selected { background: #EBF5FB; border-color: var(--primary); }
-        .sticker-emoji { font-size: 1.8rem; margin-bottom: 2px; }
+        .sticker-list { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; overflow-y: auto; flex: 1; padding: 5px;}
+        .sticker-item { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 75px; border: 2px solid transparent; border-radius: 14px; font-size: 0.9rem; background: #FDFDFD; box-shadow: 0 2px 5px rgba(0,0,0,0.05); text-align:center;}
+        .sticker-item.selected { background: #EBF5FB; border-color: var(--primary); transform: scale(1.05);}
+        .sticker-emoji { font-size: 2rem; margin-bottom: 3px; }
 
-        footer { padding: 0 10px 10px 10px; display: flex; justify-content: flex-end; z-index: 10; gap: 10px;}
-        .btn-action { color: white; border: none; padding: 15px 30px; border-radius: var(--radius-btn); font-size: 1.3rem; font-family: 'Jua', sans-serif; font-weight:bold;}
-        #download-btn { background: #95A5A6; }
-        #submit-btn { background: #FF9A9E; }
+        .setting-item { display: flex; justify-content: space-between; align-items: center; background: #FDFDFD; padding: 15px 20px; border-radius: 14px; border: 1px solid var(--border); font-size: 1.2rem;}
+        .toggle-switch { display: flex; background: #F0F3F4; border-radius: 30px; padding: 4px; }
+        .t-btn { padding: 8px 15px; font-size: 1rem; border-radius: 20px; color: #95A5A6; cursor: pointer;}
+        .t-btn.active { background: var(--primary); color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1);}
     </style>
 </head>
 <body>
     <header>
-        <div class="menu-group">
+        <button class="btn-back" onclick="if(window.parent && window.parent.closeApp) window.parent.closeApp(); else history.back();">🔙</button>
+        <div class="select-group">
             <select id="sido-select"><option value="">시/도 선택</option></select>
             <select id="sigungu-select"><option value="">시/군/구 선택</option></select>
-            <button class="btn-header btn-back" onclick="if(window.parent && window.parent.closeApp) window.parent.closeApp(); else history.back();">🔙 메뉴로</button>
-        </div>
-        <div class="toggle-container" id="base-map-toggle-wrapper">
-            <div class="toggle-btn active" id="toggle-map-show" onclick="setBaseMapMode(true)">🗺️ 전도 보이기</div>
-            <div class="toggle-btn" id="toggle-map-hide" onclick="setBaseMapMode(false)">❌ 숨김</div>
-        </div>
-        <div class="toggle-container">
-            <div class="toggle-btn active" id="toggle-show" onclick="setTextMode(true)">✅ 범례 표시</div>
-            <div class="toggle-btn" id="toggle-hide" onclick="setTextMode(false)">❌ 숨김</div>
         </div>
     </header>
 
@@ -105,66 +117,114 @@
             
             <div class="zoom-controls">
                 <button class="zoom-btn" onclick="zoomView(1.3)">+</button>
-                <button class="zoom-btn" onclick="resetZoomControl()">맞춤</button>
+                <button class="zoom-btn zoom-btn-rect" onclick="resetZoomControl()">맞춤</button>
                 <button class="zoom-btn" onclick="zoomView(0.7)">-</button>
             </div>
+            
+            <div class="action-controls">
+                <button class="fab-btn fab-save" onclick="handleAction('download')" title="기기에 저장">📥</button>
+                <button class="fab-btn fab-submit" onclick="handleAction('submit')"><span>📤</span><span>제출</span></button>
+            </div>
         </div>
-        <aside>
-            <div class="btn-grid grid-3">
-                <button class="tool-btn action-btn" onclick="undo()" id="btn-undo">↩️ 취소</button>
-                <button class="tool-btn action-btn" onclick="redo()" id="btn-redo">↪️ 복구</button>
-                <button class="tool-btn btn-danger" onclick="clearAll()">🗑️ 싹지우기</button>
-            </div>
 
-            <div class="tool-section">
-                <h3>✨ 지형과 길 그리기 ✨</h3>
-                <div class="btn-grid grid-3">
-                    <button class="tool-btn selected" id="tool-road" onclick="setTool('road')">🛣️ 도로</button>
-                    <button class="tool-btn" id="tool-rail" onclick="setTool('rail')">🚂 철도</button>
-                    <button class="tool-btn" id="tool-river" onclick="setTool('river')">🌊 하천</button>
+        <aside id="tool-panel">
+            <div class="panel-toggle" id="panel-toggle" onclick="togglePanel()">▲ 도구</div>
+            <div class="panel-content">
+                <div class="ptab-menu">
+                    <button class="ptab-btn active" id="btn-tab-draw" onclick="switchPanelTab('draw')">✏️ 그리기</button>
+                    <button class="ptab-btn" id="btn-tab-sticker" onclick="switchPanelTab('sticker')">🏠 스티커</button>
+                    <button class="ptab-btn" id="btn-tab-setting" onclick="switchPanelTab('setting')">⚙️ 편집</button>
                 </div>
-                <div class="btn-grid grid-3">
-                    <button class="tool-btn" id="tool-highlighter" onclick="setTool('highlighter')">🖍️ 형광펜</button>
-                    <button class="tool-btn" id="tool-eraser" onclick="setTool('eraser')">🧽 지우개</button>
-                    <button class="tool-btn" id="tool-pan" onclick="setTool('pan')">🤚 이동</button>
-                </div>
-                <div class="btn-grid grid-3">
-                    <button class="tool-btn selected" id="mode-free" onclick="setDrawMode('free')">✍️ 쓱쓱</button>
-                    <button class="tool-btn" id="mode-point" onclick="setDrawMode('point')">📏 점 잇기</button>
-                    <!-- 우클릭 대신 도입된 태블릿용 선 끊기 버튼 -->
-                    <button class="tool-btn btn-danger" onclick="breakLine()" style="background:#FDEDEC; border-color:#F5B7B1;">✂️ 선 끊기</button>
-                </div>
-                <div class="slider-container">
-                    <label>✏️ 펜 굵기</label>
-                    <input type="range" id="line-width-slider" min="0.3" max="3" step="0.1" value="1">
-                </div>
-            </div>
 
-            <div class="tool-section" style="flex: 1; min-height: 0;">
-                <h3>🏠 스티커 붙이기 🏠</h3>
-                <div class="slider-container">
-                    <label>📐 크기</label>
-                    <input type="range" id="sticker-size-slider" min="0.5" max="3" step="0.1" value="1" oninput="updateStickerSize(this.value)">
+                <!-- 1. 그리기 탭 -->
+                <div class="tab-content active" id="tab-draw">
+                    <div class="btn-grid grid-3" style="margin-bottom: 5px;">
+                        <button class="tool-btn action-btn" onclick="undo()" id="btn-undo">↩️ 취소</button>
+                        <button class="tool-btn action-btn" onclick="redo()" id="btn-redo">↪️ 복구</button>
+                        <button class="tool-btn btn-danger" onclick="clearAll()">🗑️ 싹지우기</button>
+                    </div>
+                    <div class="slider-container">
+                        <label>✏️ 굵기</label>
+                        <input type="range" id="line-width-slider" min="0.3" max="3" step="0.1" value="1">
+                    </div>
+                    <div class="btn-grid grid-3">
+                        <button class="tool-btn selected" id="tool-road" onclick="setTool('road')">🛣️ 도로</button>
+                        <button class="tool-btn" id="tool-rail" onclick="setTool('rail')">🚂 철도</button>
+                        <button class="tool-btn" id="tool-river" onclick="setTool('river')">🌊 하천</button>
+                        <button class="tool-btn" id="tool-highlighter" onclick="setTool('highlighter')">🖍️ 형광펜</button>
+                        <button class="tool-btn" id="tool-eraser" onclick="setTool('eraser')">🧽 지우개</button>
+                        <button class="tool-btn" id="tool-pan" onclick="setTool('pan')">🤚 이동</button>
+                    </div>
+                    <div class="btn-grid grid-3">
+                        <button class="tool-btn selected" id="mode-free" onclick="setDrawMode('free')">✍️ 쓱쓱</button>
+                        <button class="tool-btn" id="mode-point" onclick="setDrawMode('point')">📏 점 잇기</button>
+                        <!-- 💡 태블릿 필수: 선 끊기 버튼 -->
+                        <button class="tool-btn btn-danger" onclick="breakLine()">✂️ 선 끊기</button>
+                    </div>
                 </div>
-                
-                <div class="category-tab-menu">
-                    <button class="cat-tab-btn active" id="tab-cat-all" onclick="setCategoryFilter('all')">전체</button>
-                    <button class="cat-tab-btn" id="tab-cat-nature" onclick="setCategoryFilter('nature')">자연환경</button>
-                    <button class="cat-tab-btn" id="tab-cat-human" onclick="setCategoryFilter('human')">인문환경</button>
+
+                <!-- 2. 스티커 탭 -->
+                <div class="tab-content" id="tab-sticker">
+                    <div class="slider-container">
+                        <label>📐 크기</label>
+                        <input type="range" id="sticker-size-slider" min="0.5" max="3" step="0.1" value="1" oninput="updateStickerSize(this.value)">
+                    </div>
+                    <div class="cat-tab-menu">
+                        <button class="cat-btn active" id="tab-cat-all" onclick="setCategoryFilter('all')">전체</button>
+                        <button class="cat-btn" id="tab-cat-nature" onclick="setCategoryFilter('nature')">자연</button>
+                        <button class="cat-btn" id="tab-cat-human" onclick="setCategoryFilter('human')">인문</button>
+                    </div>
+                    <div class="sticker-list" id="sticker-container"></div>
                 </div>
-                <div class="sticker-list" id="sticker-container"></div>
+
+                <!-- 3. 설정/편집 탭 -->
+                <div class="tab-content" id="tab-setting">
+                    <div class="setting-item">
+                        <span>🗺️ 원본 전도 배경</span>
+                        <div class="toggle-switch">
+                            <div class="t-btn active" id="t-map-on" onclick="setBaseMapMode(true)">켜기</div>
+                            <div class="t-btn" id="t-map-off" onclick="setBaseMapMode(false)">끄기</div>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <span>✅ 기호 범례창</span>
+                        <div class="toggle-switch">
+                            <div class="t-btn active" id="t-leg-on" onclick="setTextMode(true)">켜기</div>
+                            <div class="t-btn" id="t-leg-off" onclick="setTextMode(false)">끄기</div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </aside>
     </main>
 
-    <footer>
-        <button class="btn-action" id="download-btn" onclick="handleAction('download')">📥 기기에 저장</button>
-        <button class="btn-action" id="submit-btn" onclick="handleAction('submit')">📸 선생님께 제출</button>
-    </footer>
-
     <script>
-        // 공간 관계상 시군구 데이터는 일부만 남겨두었습니다. 
-        // 기존 map1.html 코드에 있던 전체 regionData를 그대로 복붙하셔도 됩니다.
+        // --- 💡 UI 컨트롤 로직 ---
+        let isPanelOpen = false;
+        function togglePanel() {
+            isPanelOpen = !isPanelOpen;
+            document.getElementById('tool-panel').classList.toggle('open', isPanelOpen);
+            document.body.classList.toggle('panel-open', isPanelOpen);
+            updateToggleText();
+        }
+        
+        function updateToggleText() {
+            const btn = document.getElementById('panel-toggle');
+            const isLandscape = window.innerWidth > window.innerHeight;
+            if(isPanelOpen) btn.innerHTML = isLandscape ? '▶ 닫기' : '▼ 닫기';
+            else btn.innerHTML = isLandscape ? '◀ 도구' : '▲ 도구';
+        }
+        window.addEventListener('resize', updateToggleText);
+
+        function switchPanelTab(tabId) {
+            document.querySelectorAll('.ptab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.getElementById('btn-tab-' + tabId).classList.add('active');
+            document.getElementById('tab-' + tabId).classList.add('active');
+        }
+
+        // --- 데이터 로직 (기존과 동일) ---
         const regionData = {
             "서울특별시": ["종로구", "중구", "용산구", "성동구", "광진구", "동대문구", "중랑구", "성북구", "강북구", "도봉구", "노원구", "은평구", "서대문구", "마포구", "양천구", "강서구", "구로구", "금천구", "영등포구", "동작구", "관악구", "서초구", "강남구", "송파구", "강동구"],
             "경기도": ["수원시", "성남시", "의정부시", "안양시", "부천시", "광명시", "동두천시", "평택시", "안산시", "고양시", "과천시", "구리시", "남양주시", "오산시", "시흥시", "군포시", "의왕시", "하남시", "용인시", "파주시", "이천시", "안성시", "김포시", "화성시", "광주시", "양주시", "포천시", "여주시", "연천군", "가평군", "양평군"],
@@ -206,21 +266,16 @@
         let tempCanvas = document.createElement('canvas'); let tempCtx = tempCanvas.getContext('2d');
         
         let stickers = []; let historyStack = []; let stickerHistoryStack = []; let historyStep = -1;
-        
         let showText = true; let currentCat = 'all'; let curTool = 'road'; let drawMode = 'free'; let curIcon = null;
         
         let nationalImg = null; let isNationalMap = true; let showBaseMap = true; let mapImg = null;
         let baseImgW = 1000, baseImgH = 1000; let imgRect = { x: 0, y: 0, w: 0, h: 0 }; 
         
         let isDrawing = false; let isPanning = false; let strokePoints = []; let lastPoint = null;
-
-        // 태블릿용 선택 모드 변수
         let selectedStickerIdx = -1; 
         
         let scale = 1; let panX = 0; let panY = 0;
         let startX = 0, startY = 0;
-
-        // 핀치 줌 변수
         let initialPinchDist = null; let initialScale = 1;
 
         const cvs = document.getElementById('mapCanvas'); const ctx = cvs.getContext('2d');
@@ -255,7 +310,6 @@
             saveHistory(); resetZoomControl(); resize();
         }
 
-        // B안(이벤트 단위) 캔버스 자동저장
         function autoSaveToSession() { sessionStorage.setItem('map1_autosave', drawCanvas.toDataURL()); }
 
         function saveHistory() {
@@ -282,9 +336,7 @@
         }
 
         function clearAll() { 
-            if(confirm("모든 펜 자국을 지울까요? (스티커는 남습니다)")) {
-                drawCtx.clearRect(0, 0, baseImgW, baseImgH); lastPoint = null; saveHistory(); redraw();
-            }
+            if(confirm("모든 펜 자국을 지울까요? (스티커는 남습니다)")) { drawCtx.clearRect(0, 0, baseImgW, baseImgH); lastPoint = null; saveHistory(); redraw(); }
         }
 
         function updateHistoryBtns() {
@@ -293,7 +345,7 @@
         }
 
         function setCategoryFilter(cat) {
-            currentCat = cat; document.querySelectorAll('.cat-tab-btn').forEach(btn => btn.classList.remove('active'));
+            currentCat = cat; document.querySelectorAll('.cat-btn').forEach(btn => btn.classList.remove('active'));
             document.getElementById('tab-cat-' + cat).classList.add('active'); curIcon = null; 
             document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('selected')); renderIcons();
         }
@@ -314,8 +366,8 @@
             });
         }
 
-        function setTextMode(val) { showText = val; document.getElementById('toggle-show').classList.toggle('active', val); document.getElementById('toggle-hide').classList.toggle('active', !val); redraw(); }
-        function setBaseMapMode(val) { showBaseMap = val; document.getElementById('toggle-map-show').classList.toggle('active', val); document.getElementById('toggle-map-hide').classList.toggle('active', !val); redraw(); }
+        function setTextMode(val) { showText = val; document.getElementById('t-leg-on').classList.toggle('active', val); document.getElementById('t-leg-off').classList.toggle('active', !val); redraw(); }
+        function setBaseMapMode(val) { showBaseMap = val; document.getElementById('t-map-on').classList.toggle('active', val); document.getElementById('t-map-off').classList.toggle('active', !val); redraw(); }
 
         function setTool(t) {
             curTool = t; curIcon = null;
@@ -324,7 +376,7 @@
             document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('selected'));
             if(document.getElementById('tool-' + t)) document.getElementById('tool-' + t).classList.add('selected');
             document.querySelectorAll('.sticker-item').forEach(b => b.classList.remove('selected'));
-            selectedStickerIdx = -1; redraw(); // 도구 변경 시 스티커 선택 해제
+            selectedStickerIdx = -1; redraw();
         }
 
         function setDrawMode(m) { drawMode = m; lastPoint = null; document.getElementById('mode-free').classList.remove('selected'); document.getElementById('mode-point').classList.remove('selected'); document.getElementById('mode-' + m).classList.add('selected'); }
@@ -332,7 +384,7 @@
 
         function loadMap() {
             const sd = document.getElementById('sido-select').value; const sgg = document.getElementById('sigungu-select').value; if (!sd || !sgg) return;
-            isNationalMap = false; showBaseMap = false; document.getElementById('toggle-map-show').classList.remove('active'); document.getElementById('toggle-map-hide').classList.add('active');
+            isNationalMap = false; showBaseMap = false; document.getElementById('t-map-on').classList.remove('active'); document.getElementById('t-map-off').classList.add('active');
             msg.style.display = 'block'; renderIcons();
             
             let fetchSd = sd; let fetchSgg = sgg;
@@ -341,9 +393,7 @@
                 const gwangjuSigungu = ["동구", "서구", "남구", "북구", "광산구"];
                 fetchSd = gwangjuSigungu.includes(sgg) ? "광주광역시" : "전라남도";
             } else if (sd === "인천광역시") {
-                if (sgg === "영종구") fetchSgg = "중구";
-                if (sgg === "제물포구") fetchSgg = "동구";
-                if (sgg === "서해구" || sgg === "검단구") fetchSgg = "서구";
+                if (sgg === "영종구") fetchSgg = "중구"; if (sgg === "제물포구") fetchSgg = "동구"; if (sgg === "서해구" || sgg === "검단구") fetchSgg = "서구";
             }
 
             let url1 = "", url2 = "";
@@ -404,49 +454,44 @@
             context.setLineDash([]);
         }
 
-        function updateStickerSize(val) {
-            if (selectedStickerIdx !== -1) { stickers[selectedStickerIdx].scale = parseFloat(val); saveHistory(); redraw(); }
-        }
+        function updateStickerSize(val) { if (selectedStickerIdx !== -1) { stickers[selectedStickerIdx].scale = parseFloat(val); saveHistory(); redraw(); } }
 
         // --- 🖐️ 제스처 & Pointer Events 적용 ---
         cvs.addEventListener('pointerdown', e => {
-            // 드로잉 중 멀티터치 방지
             if(e.pointerType === 'touch' && !e.isPrimary) return; 
             
             const rect = cvs.getBoundingClientRect(); const clkX = e.clientX - rect.left; const clkY = e.clientY - rect.top;
             if (curTool === 'pan') { isPanning = true; startX = e.clientX - panX; startY = e.clientY - panY; return; }
 
-            // 1. 스티커 선택 및 삭제 (터치 최적화: 투 뎁스 방식)
+            // 스티커 선택 및 삭제 로직
             let clickedSticker = -1;
             for (let i = stickers.length - 1; i >= 0; i--) {
                 const ap = absPt({x: stickers[i].realX, y: stickers[i].realY});
                 const screenX = ap.x * scale + panX; const screenY = ap.y * scale + panY;
                 const sScale = stickers[i].scale || 1; 
                 
-                // 선택된 상태일 때 X버튼(우측상단) 터치 확인
                 if (selectedStickerIdx === i && Math.hypot(clkX - (screenX+(25*sScale*scale)), clkY - (screenY-(25*sScale*scale))) < (30*sScale*scale)) {
                     stickers.splice(i, 1); selectedStickerIdx = -1; saveHistory(); redraw(); return; 
                 }
-                // 스티커 몸통 터치 확인
                 if (Math.hypot(clkX - screenX, clkY - screenY) < (40*sScale*scale)) { clickedSticker = i; break; }
             }
 
             if(clickedSticker !== -1) {
                 selectedStickerIdx = clickedSticker; 
-                stickerSlider.value = stickers[selectedStickerIdx].scale || 1; // 슬라이더 동기화
-                redraw(); return; // 스티커 선택만 하고 종료
+                stickerSlider.value = stickers[selectedStickerIdx].scale || 1; 
+                redraw(); return; 
             } else {
-                selectedStickerIdx = -1; // 빈 곳 클릭 시 선택 해제
+                selectedStickerIdx = -1; 
             }
 
-            // A안 (모드 철저 분리: 펜, 지우개 도구일 때만 드로잉 시작)
+            // 모드 분리 (A안: 펜, 지우개 도구일 때만 드로잉)
             const drawTools = ['road','rail','river','highlighter','eraser'];
             if(drawTools.includes(curTool)) {
                 const p = getPt(e); if (!p) return;
                 if (drawMode === 'free') { isDrawing = true; strokePoints = [p]; } 
                 else {
                     const w = parseFloat(widthSlider.value);
-                    if (!lastPoint) { lastPoint = p; redraw(); } // 시작점만 저장
+                    if (!lastPoint) { lastPoint = p; redraw(); } 
                     else {
                         if(curTool === 'eraser') drawCtx.globalCompositeOperation = 'destination-out';
                         if(curTool === 'highlighter') drawCtx.globalAlpha = 0.4;
@@ -457,11 +502,10 @@
                 }
             }
             
-            // 아이콘 붙이기
             if(curTool === 'icon' && curIcon) {
                 const p = getPt(e);
                 stickers.push({ e: curIcon.e, t: curIcon.t, realX: p.x, realY: p.y, scale: parseFloat(stickerSlider.value)||1 });
-                selectedStickerIdx = stickers.length - 1; // 방금 찍은 것 자동 선택
+                selectedStickerIdx = stickers.length - 1; 
                 saveHistory(); redraw();
             }
         });
@@ -495,7 +539,7 @@
             }
         });
 
-        // 핀치 줌 로직 (Native Touch Events)
+        // 핀치 줌 로직 
         cvs.addEventListener('touchstart', e => {
             if(e.touches.length === 2) {
                 initialPinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
@@ -529,7 +573,7 @@
             ctx.drawImage(drawCanvas, imgRect.x, imgRect.y, imgRect.w, imgRect.h);
             ctx.drawImage(tempCanvas, imgRect.x, imgRect.y, imgRect.w, imgRect.h);
 
-            // 점 잇기 가이드 표시
+            // 점 잇기 가이드
             if(drawMode === 'point' && lastPoint) {
                 const p = absPt(lastPoint); ctx.beginPath(); ctx.arc(p.x, p.y, 8, 0, Math.PI*2); ctx.fillStyle = "#E74C3C"; ctx.fill();
             }
@@ -542,7 +586,7 @@
                     ctx.strokeText(s.t, p.x, p.y + (30 * ss)); ctx.fillText(s.t, p.x, p.y + (30 * ss));
                 }
                 
-                // 선택된 스티커 강조 및 삭제 버튼 표시
+                // 선택된 스티커 삭제 버튼 표시
                 if (selectedStickerIdx === i) {
                     ctx.strokeStyle = "#5DADE2"; ctx.lineWidth = 3; ctx.setLineDash([8, 8]);
                     ctx.strokeRect(p.x - (35*ss), p.y - (35*ss), 70*ss, 85*ss); ctx.setLineDash([]);
