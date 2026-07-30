@@ -18,7 +18,7 @@
         }
 
         * { box-sizing: border-box; user-select: none; -webkit-touch-callout: none; }
-        body { font-family: 'Jua', sans-serif; margin: 0; padding: 0; background: var(--bg); display: flex; flex-direction: column; height: 100vh; overflow: hidden; color: var(--text); overscroll-behavior: none; }
+        body { font-family: 'Jua', sans-serif; margin: 0; padding: 0; background: var(--bg); display: flex; flex-direction: column; height: 100dvh; overflow: hidden; color: var(--text); overscroll-behavior: none; }
 
         header { background: var(--panel); padding: 8px 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: flex; align-items: center; z-index: 100; height: 60px; flex-shrink: 0; gap: 10px;}
         .btn-back { background: #E74C3C; color: white; border: none; padding: 8px 15px; border-radius: 12px; font-family: 'Jua', sans-serif; font-size: 1.1rem; cursor: pointer; height: 100%; white-space: nowrap;}
@@ -26,7 +26,7 @@
         .map-selector { display: flex; align-items: center; gap: 10px; flex: 1; height: 100%; }
         select { height: 100%; flex: 1; border: 2px solid var(--primary); border-radius: 12px; font-family: 'Jua', sans-serif; font-size: 1.1rem; outline: none; background: #FDFDFD; padding: 0 10px; color: var(--primary); font-weight: bold;}
 
-        main { display: flex; position: relative; width: 100vw; height: calc(100vh - 60px); overflow: hidden; }
+        main { display: flex; position: relative; width: 100vw; height: calc(100dvh - 60px); overflow: hidden; }
         
         #map-viewport { flex: 1; position: relative; background: #FFFFFF; overflow: hidden; touch-action: none; }
         canvas { display: block; width: 100%; height: 100%; touch-action: none; }
@@ -50,7 +50,7 @@
         .panel-content { flex: 1; display: flex; flex-direction: column; padding: 15px; overflow: hidden; }
         
         .ptab-menu { display: flex; gap: 5px; background: #F0F3F4; padding: 6px; border-radius: 14px; margin-bottom: 15px; flex-shrink: 0;}
-        .ptab-btn { flex: 1; padding: 10px; border: none; background: transparent; font-family: 'Jua', sans-serif; font-size: 1.15rem; border-radius: 10px; color: #7F8C8D; cursor: pointer; transition: 0.2s;}
+        .ptab-btn { flex: 1; padding: 10px; border: none; background: transparent; font-family: 'Jua', sans-serif; font-size: 1.15rem; border-radius: 10px; color: #7F8C8D; cursor: pointer; transition: 0.2s; white-space: nowrap;}
         .ptab-btn.active { background: white; color: var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.05); font-weight: bold;}
         
         .tab-content { display: none; flex-direction: column; gap: 15px; flex: 1; overflow-y: auto; padding-right: 5px;}
@@ -311,7 +311,6 @@
 
         let historyStack = []; let stickerHistoryStack = []; let historyStep = -1;
         
-        // 화살표 A안 (조절점 편집 모드) 상태 변수
         let activeCurve = null; 
         let draggedPoint = null; 
 
@@ -327,7 +326,6 @@
         let draggingSticker = null; let stickerMoved = false;
         let initialPinchDist = null; let initialScale = 1;
 
-        // 1. requestAnimationFrame 도입 (렌더링 최적화)
         let isRedrawScheduled = false;
         function scheduleRedraw() {
             if (!isRedrawScheduled) {
@@ -425,7 +423,7 @@
         }
 
         function setTool(t) {
-            if(activeCurve) burnActiveCurve(); // 도구 변경 시 편집중이던 화살표 바닥에 굽기
+            if(activeCurve) burnActiveCurve(); 
             curTool = t; 
             document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('selected'));
             if(document.getElementById('tool-' + t)) document.getElementById('tool-' + t).classList.add('selected');
@@ -452,7 +450,6 @@
 
         function toggleText() { showText = !showText; document.getElementById('t-leg-on').classList.toggle('active', showText); document.getElementById('t-leg-off').classList.toggle('active', !showText); scheduleRedraw(); }
 
-        // 3. 중복된 window.onload 선언 제거 (여기 하나만 유지)
         window.onload = () => { 
             cvs.width = viewport.clientWidth; cvs.height = viewport.clientHeight; loadMap(); 
         };
@@ -481,7 +478,7 @@
             if (refImg && refImg.naturalWidth) {
                 baseImgW = refImg.naturalWidth; baseImgH = refImg.naturalHeight;
             } else {
-                baseImgW = 1000; baseImgH = 1000; // Failsafe
+                baseImgW = 1000; baseImgH = 1000; 
             }
             drawCanvas.width = tempCanvas.width = baseImgW;
             drawCanvas.height = tempCanvas.height = baseImgH;
@@ -505,7 +502,6 @@
             scheduleRedraw();
         }
 
-        // 4. resize 이벤트 개선: 배율(scale)과 위치(pan)를 유지하되 화면 이탈 방지용 최소 보정 추가
         window.addEventListener('resize', () => { 
             cvs.width = viewport.clientWidth; 
             cvs.height = viewport.clientHeight; 
@@ -521,7 +517,6 @@
             scheduleRedraw(); 
         });
 
-        // 그리기 및 화살표 조절점 로직
         function drawSmoothLine(context, pts, type, color, w, controlP1 = null) {
             if (pts.length === 0) return;
             context.beginPath(); context.moveTo(pts[0].x, pts[0].y);
@@ -560,7 +555,6 @@
             }
         }
 
-        // 활성화된 화살표를 캔버스에 굽는(고정하는) 함수
         function burnActiveCurve() {
             if (!activeCurve) return;
             drawSmoothLine(drawCtx, [activeCurve.p0, activeCurve.p2], activeCurve.type, activeCurve.color, activeCurve.w, activeCurve.p1);
@@ -582,10 +576,8 @@
             }
             
             if (hoverIdx !== -1) { 
-                draggingSticker = stickers[hoverIdx]; 
-                stickerMoved = false; 
-                draggingSticker.downX = mx; 
-                draggingSticker.downY = my; 
+                draggingSticker = stickers[hoverIdx]; stickerMoved = false; 
+                draggingSticker.downX = mx; draggingSticker.downY = my; 
                 document.getElementById('sticker-size-slider').value = draggingSticker.scale || 1; 
                 return; 
             }
@@ -703,9 +695,6 @@
             }
         };
 
-        // 5. pointermove 이벤트 최적화: 
-        // 캔버스 내에서의 움직임만 추적하면 화면 가장자리 밖으로 마우스/손가락이 나갔을 때 드래그가 뚝 끊기는 치명적인 안정성 문제가 생깁니다. 
-        // 캔버스 안에서만 멈추는 불상사를 막기 위해 window에 이벤트를 거는 기존 방식을 유지했습니다.
         cvs.addEventListener('pointerdown', pointerDown); 
         window.addEventListener('pointermove', pointerMove); 
         window.addEventListener('pointerup', pointerUp);
@@ -725,8 +714,6 @@
         }, {passive: false});
         cvs.addEventListener('touchend', e => { if(e.touches.length < 2) initialPinchDist = null; });
 
-
-        // 2. redraw() 함수 내부 논리적 분리 (상태 변경 없는 순수 렌더링 유지)
         function redraw() {
             ctx.fillStyle = "#FFFFFF"; 
             ctx.fillRect(0, 0, cvs.width, cvs.height);
@@ -813,10 +800,9 @@
         }
 
         function handleAction(type) {
-            if(activeCurve) burnActiveCurve(); // 캡처 전 화살표 굽기
+            if(activeCurve) burnActiveCurve(); 
             const tempHoverIdx = hoverIdx; const tempDragging = draggingSticker; hoverIdx = -1; draggingSticker = null; 
             
-            // 캡처 전 임시 UI(X 버튼 등)를 화면에서 확실히 지우기 위해 여기선 동기 방식의 redraw()를 한 번 씁니다.
             redraw(); 
 
             cvs.toBlob(blob => {
