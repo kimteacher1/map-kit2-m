@@ -43,7 +43,6 @@
         .fab-submit:active { transform: scale(0.95); background: #FF858A; }
         .fab-save { background: #95A5A6; width: 50px; height: 50px; border-radius: 50%; font-size: 1.4rem; }
 
-        /* 바텀 시트 및 사이드 패널 */
         aside { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: absolute; z-index: 100; box-shadow: 0 0 20px rgba(0,0,0,0.15); display: flex; flex-direction: column; }
         .panel-toggle { position: absolute; background: var(--panel); box-shadow: 0 2px 10px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; cursor: pointer; font-family: 'Jua', sans-serif; color: var(--primary); font-size: 1.2rem; border: 1px solid #ddd; z-index: 101;}
         
@@ -286,16 +285,13 @@
             { e: "🚍", t: "터미널", c: "human" }, { e: "⚓", t: "항구", c: "human" }, { e: "✈️", t: "공항", c: "human" }, { e: "🏭", t: "공장", c: "human" },
             { e: "🏫", t: "학교", c: "facility" }, { e: "🚓", t: "경찰서", c: "facility" }, { e: "🚒", t: "소방서", c: "facility" }, { e: "📮", t: "우체국", c: "facility" }, 
             { e: "🏛️", t: "시/구청", c: "facility" }, { e: "🏢", t: "주민센터", c: "facility" }, { e: "📖", t: "도서관", c: "facility" }, { e: "🏥", t: "병원", c: "facility" }, 
-            { e: "🏬", t: "마트", c: "facility" }, { e: "🏦", t: "은행", c: "facility" }, { e: "🏛️", t: "박물관", c: "facility" }, { e: "✚", t: "보건소", c: "facility" },
-            { e: "🦠", t: "감염병", c: "human" }, { e: "⚔️", t: "전쟁", c: "human" }, { e: "⛺", t: "난민", c: "human" }, { e: "⚠️", t: "재난", c: "nature" }
+            { e: "🏬", t: "마트", c: "facility" }, { e: "🏦", t: "은행", c: "facility" }, { e: "🏛️", t: "박물관", c: "facility" }, { e: "✚", t: "보건소", c: "facility" }
         ];
 
         const worldIcons = [
             { e: "📍", t: "주요도시" }, { e: "◉", t: "수도" }, { e: "⭐", t: "핵심지역" }, { e: "🏛️", t: "국가기관" }, { e: "🏭", t: "산업단지" },
             { e: "✈️", t: "국제공항" }, { e: "⚓", t: "주요항구" }, { e: "🚄", t: "대륙횡단철도" }, { e: "🚢", t: "운하/해협" }, { e: "⛽", t: "자원산지" },
-            { e: "⛰️", t: "세계명산" }, { e: "🌊", t: "대하천" }, { e: "🐫", t: "주요사막" }, { e: "💧", t: "대호수" }, { e: "🌲", t: "열대우림" },
-            { e: "📜", t: "세계유산" }, { e: "🗿", t: "고대문명" }, { e: "🌋", t: "화산/지진대" }, { e: "🐧", t: "극지방" }, { e: "🧭", t: "탐험지" },
-            { e: "🦠", t: "감염병" }, { e: "⚔️", t: "전쟁" }, { e: "⛺", t: "난민" }, { e: "⚠️", t: "재난" }
+            { e: "⛰️", t: "세계명산" }, { e: "🌊", t: "대하천" }, { e: "🐫", t: "주요사막" }, { e: "💧", t: "대호수" }, { e: "🌲", t: "열대우림" }
         ];
 
         const domesticTexts = ["태백산맥", "소백산맥", "호남평야", "나주평야", "한강", "낙동강", "금강", "영산강", "서울특별시", "부산광역시", "제주특별자치도"];
@@ -310,10 +306,7 @@
         let tempCanvas = document.createElement('canvas'); let tempCtx = tempCanvas.getContext('2d');
 
         let historyStack = []; let stickerHistoryStack = []; let historyStep = -1;
-        
-        // 💡 화살표 A안 (조절점 편집 모드) 상태 변수
-        let activeCurve = null; 
-        let draggedPoint = null; 
+        let activeCurve = null; let draggedPoint = null; 
 
         let loadedLayers = {};
         let scale = 1, panX = 0, panY = 0;
@@ -324,11 +317,10 @@
         let isDrawing = false; let activeLine = null;
 
         let stickers = []; let hoverIdx = -1; let showText = true;
-        let draggingSticker = null; let stickerMoved = false;
-        let initialPinchDist = null; let initialScale = 1;
+        let selectedStickerIdx = -1; 
 
         function updateStickerSize(val) {
-            if (draggingSticker) { draggingSticker.scale = parseFloat(val); redraw(); }
+            if (selectedStickerIdx !== -1) { stickers[selectedStickerIdx].scale = parseFloat(val); redraw(); }
         }
 
         function buildUI(mapPrefix) {
@@ -395,7 +387,7 @@
             if(historyStep > 0) {
                 historyStep--; drawCtx.putImageData(historyStack[historyStep], 0, 0);
                 stickers = JSON.parse(JSON.stringify(stickerHistoryStack[historyStep]));
-                burnActiveCurve(); redraw(); updateHistoryBtns();
+                burnActiveCurve(); selectedStickerIdx = -1; redraw(); updateHistoryBtns();
             }
         }
 
@@ -403,7 +395,7 @@
             if(historyStep < historyStack.length - 1) {
                 historyStep++; drawCtx.putImageData(historyStack[historyStep], 0, 0);
                 stickers = JSON.parse(JSON.stringify(stickerHistoryStack[historyStep]));
-                burnActiveCurve(); redraw(); updateHistoryBtns();
+                burnActiveCurve(); selectedStickerIdx = -1; redraw(); updateHistoryBtns();
             }
         }
 
@@ -413,7 +405,7 @@
         }
 
         function setTool(t) {
-            if(activeCurve) burnActiveCurve(); // 도구 변경 시 편집중이던 화살표 바닥에 굽기
+            if(activeCurve) burnActiveCurve(); 
             curTool = t; 
             document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('selected'));
             if(document.getElementById('tool-' + t)) document.getElementById('tool-' + t).classList.add('selected');
@@ -422,12 +414,11 @@
                 curIcon = null;
             }
             cvs.style.cursor = (t === 'pan') ? 'grab' : (['icon', 'text-only', 'custom-text'].includes(t) ? 'crosshair' : 'crosshair');
-            redraw();
+            selectedStickerIdx = -1; redraw();
         }
 
         function setColor(color, btn) {
-            curColor = color;
-            document.querySelectorAll('.color-preset').forEach(b => b.classList.remove('active'));
+            curColor = color; document.querySelectorAll('.color-preset').forEach(b => b.classList.remove('active'));
             if(btn) btn.classList.add('active');
         }
 
@@ -440,20 +431,13 @@
 
         function toggleText() { showText = !showText; document.getElementById('t-leg-on').classList.toggle('active', showText); document.getElementById('t-leg-off').classList.toggle('active', !showText); redraw(); }
 
-        // 💡 브라우저 오작동 원인이었던 document.fonts.load 제거 및 즉시 로드 적용[cite: 9]
-        window.onload = () => { 
-            cvs.width = viewport.clientWidth; cvs.height = viewport.clientHeight; loadMap(); 
-        };
+        window.onload = () => { cvs.width = viewport.clientWidth; cvs.height = viewport.clientHeight; loadMap(); };
 
         function loadMap() {
             const mapPrefix = document.getElementById('map-region').value;
-            const config = mapConfigs[mapPrefix];
-            buildUI(mapPrefix);
-            msg.style.display = 'block';
+            const config = mapConfigs[mapPrefix]; buildUI(mapPrefix); msg.style.display = 'block';
             
-            loadedLayers = {};
-            let toLoad = [{ id: 'base', name: config.base.name }, ...config.layers];
-            let loadedCount = 0;
+            loadedLayers = {}; let toLoad = [{ id: 'base', name: config.base.name }, ...config.layers]; let loadedCount = 0;
 
             toLoad.forEach(layer => {
                 const img = new Image(); img.crossOrigin = "Anonymous";
@@ -466,36 +450,28 @@
 
         function finalizeLoad() {
             let refImg = loadedLayers['base'] || Object.values(loadedLayers)[0];
-            if (refImg && refImg.naturalWidth) {
-                baseImgW = refImg.naturalWidth; baseImgH = refImg.naturalHeight;
-            } else {
-                baseImgW = 1000; baseImgH = 1000; // Failsafe[cite: 9]
-            }
-            drawCanvas.width = tempCanvas.width = baseImgW;
-            drawCanvas.height = tempCanvas.height = baseImgH;
+            if (refImg && refImg.naturalWidth) { baseImgW = refImg.naturalWidth; baseImgH = refImg.naturalHeight; } 
+            else { baseImgW = 1000; baseImgH = 1000; }
+            drawCanvas.width = tempCanvas.width = baseImgW; drawCanvas.height = tempCanvas.height = baseImgH;
 
             msg.style.display = 'none';
             stickers = []; activeCurve = null; historyStack = []; stickerHistoryStack = []; historyStep = -1;
-            drawCtx.clearRect(0,0,drawCanvas.width, drawCanvas.height);
-            saveHistory(); resetZoom();
+            drawCtx.clearRect(0,0,drawCanvas.width, drawCanvas.height); saveHistory(); resetZoom();
         }
 
         function zoom(factor) {
             const newScale = Math.min(Math.max(0.1, scale * factor), 5);
             const cx = cvs.width / 2; const cy = cvs.height / 2;
-            panX = cx - (cx - panX) * (newScale / scale); panY = cy - (cy - panY) * (newScale / scale);
-            scale = newScale; redraw();
+            panX = cx - (cx - panX) * (newScale / scale); panY = cy - (cy - panY) * (newScale / scale); scale = newScale; redraw();
         }
 
         function resetZoom() {
             scale = Math.min(cvs.width / baseImgW, cvs.height / baseImgH) * 0.95;
-            panX = (cvs.width - baseImgW * scale) / 2; panY = (cvs.height - baseImgH * scale) / 2;
-            redraw();
+            panX = (cvs.width - baseImgW * scale) / 2; panY = (cvs.height - baseImgH * scale) / 2; redraw();
         }
 
         window.addEventListener('resize', () => { cvs.width = viewport.clientWidth; cvs.height = viewport.clientHeight; resetZoom(); });
 
-        // --- 💡 그리기 및 화살표 조절점 로직 ---
         function drawSmoothLine(context, pts, type, color, w, controlP1 = null) {
             if (pts.length === 0) return;
             context.beginPath(); context.moveTo(pts[0].x, pts[0].y);
@@ -505,10 +481,9 @@
             let headlen = (type === 'arrow-curve' || type === 'arrow-straight') ? (w * 8 + 10) : 0;
             let lineEndX = pLast.x - headlen * 0.8 * Math.cos(angle); let lineEndY = pLast.y - headlen * 0.8 * Math.sin(angle);
 
-            if (type === 'arrow-straight') {
-                context.lineTo(lineEndX, lineEndY);
-            } else if (type === 'arrow-curve') {
-                if(controlP1) { // 💡 조절점 P1 적용
+            if (type === 'arrow-straight') { context.lineTo(lineEndX, lineEndY); } 
+            else if (type === 'arrow-curve') {
+                if(controlP1) { 
                     angle = Math.atan2(pLast.y - controlP1.y, pLast.x - controlP1.x);
                     lineEndX = pLast.x - headlen * 0.8 * Math.cos(angle); lineEndY = pLast.y - headlen * 0.8 * Math.sin(angle);
                     context.quadraticCurveTo(controlP1.x, controlP1.y, lineEndX, lineEndY);
@@ -526,146 +501,165 @@
             context.lineJoin = "round"; context.stroke();
 
             if ((type === 'arrow-curve' || type === 'arrow-straight') && pts.length > 1) {
-                headlen = 35 * w; 
-                context.beginPath(); context.moveTo(pLast.x, pLast.y);
+                headlen = 35 * w; context.beginPath(); context.moveTo(pLast.x, pLast.y);
                 context.lineTo(pLast.x - headlen * Math.cos(angle - Math.PI / 7), pLast.y - headlen * Math.sin(angle - Math.PI / 7));
                 context.lineTo(pLast.x - headlen * Math.cos(angle + Math.PI / 7), pLast.y - headlen * Math.sin(angle + Math.PI / 7));
                 context.closePath(); context.fillStyle = color || '#000'; context.globalCompositeOperation = 'source-over'; context.fill();
             }
         }
 
-        // 💡 활성화된 화살표를 캔버스에 굽는(고정하는) 함수
         function burnActiveCurve() {
             if (!activeCurve) return;
             drawSmoothLine(drawCtx, [activeCurve.p0, activeCurve.p2], activeCurve.type, activeCurve.color, activeCurve.w, activeCurve.p1);
             activeCurve = null; tempCtx.clearRect(0,0,baseImgW, baseImgH); saveHistory();
         }
 
-        const pointerDown = (e) => {
-            if(e.pointerType === 'touch' && !e.isPrimary) return;
-            const mx = (e.clientX || e.touches[0].clientX) - cvs.getBoundingClientRect().left;
-            const my = (e.clientY || e.touches[0].clientY) - cvs.getBoundingClientRect().top;
-            const rx = (mx - panX) / scale; const ry = (my - panY) / scale; const p = {x: rx, y: ry};
-            const currentGlobalScale = parseFloat(document.getElementById('sticker-size-slider').value) || 1;
+        let activePointers = []; let initialPinchDist = null; let initialScale = 1;
 
-            for (let i = stickers.length - 1; i >= 0; i--) {
-                const s = stickers[i]; const sx = s.realX * scale + panX; const sy = s.realY * scale + panY; const sScale = s.scale || 1; 
-                if (hoverIdx === i && Math.hypot(mx - (sx + (18 * sScale * scale)), my - (sy - (18 * sScale * scale))) < 25) {
-                    stickers.splice(i, 1); hoverIdx = -1; saveHistory(); redraw(); return; 
+        cvs.addEventListener('pointerdown', e => {
+            cvs.setPointerCapture(e.pointerId); activePointers.push({ id: e.pointerId, x: e.clientX, y: e.clientY });
+
+            if (activePointers.length === 2) {
+                initialPinchDist = Math.hypot(activePointers[0].x - activePointers[1].x, activePointers[0].y - activePointers[1].y);
+                initialScale = scale; isDrawing = false; return;
+            }
+
+            if (activePointers.length === 1) {
+                const clkX = e.clientX - cvs.getBoundingClientRect().left; const clkY = e.clientY - cvs.getBoundingClientRect().top;
+                const rx = (clkX - panX) / scale; const ry = (clkY - panY) / scale; const p = {x: rx, y: ry};
+                const currentGlobalScale = parseFloat(document.getElementById('sticker-size-slider').value) || 1;
+
+                if (curTool === 'pan') { startX = e.clientX - panX; startY = e.clientY - panY; return; }
+
+                // 1. 스티커 선택, ❌삭제, ✏️수정 처리
+                let clickedSticker = -1;
+                for (let i = stickers.length - 1; i >= 0; i--) {
+                    const s = stickers[i]; const sx = s.realX * scale + panX; const sy = s.realY * scale + panY; const sScale = s.scale || 1; 
+                    
+                    if (selectedStickerIdx === i) {
+                        // ❌ 삭제 버튼 터치
+                        if (Math.hypot(clkX - (sx+(25*sScale*scale)), clkY - (sy-(25*sScale*scale))) < (30*sScale*scale)) {
+                            stickers.splice(i, 1); selectedStickerIdx = -1; saveHistory(); redraw(); return; 
+                        }
+                        // ✏️ 수정 버튼 터치
+                        if (Math.hypot(clkX - (sx-(25*sScale*scale)), clkY - (sy-(25*sScale*scale))) < (30*sScale*scale)) {
+                            // 💡 비동기 처리로 포인터 이벤트 블로킹 방지 및 이중 팝업 차단
+                            setTimeout(() => {
+                                const currentName = s.type === 'text-only' ? s.text : s.t;
+                                const newName = prompt("내용을 변경하세요:", currentName);
+                                if (newName !== null && newName.trim() !== "") {
+                                    if (s.type === 'text-only') s.text = newName.trim(); else s.t = newName.trim();
+                                    saveHistory(); redraw();
+                                }
+                            }, 10);
+                            return; 
+                        }
+                    }
+                    if (Math.hypot(clkX - sx, clkY - sy) < (40*sScale*scale)) { clickedSticker = i; break; }
+                }
+
+                if(clickedSticker !== -1) {
+                    selectedStickerIdx = clickedSticker; document.getElementById('sticker-size-slider').value = stickers[selectedStickerIdx].scale || 1; redraw(); return; 
+                } else { selectedStickerIdx = -1; }
+
+                // 2. 조절점(화살표 A안) 처리
+                if (['arrow-curve', 'arrow-straight'].includes(curTool)) {
+                    if (activeCurve) {
+                        const r = 35 / scale;
+                        if (Math.hypot(p.x - activeCurve.p0.x, p.y - activeCurve.p0.y) < r) draggedPoint = 'p0';
+                        else if (activeCurve.p1 && Math.hypot(p.x - activeCurve.p1.x, p.y - activeCurve.p1.y) < r) draggedPoint = 'p1';
+                        else if (Math.hypot(p.x - activeCurve.p2.x, p.y - activeCurve.p2.y) < r) draggedPoint = 'p2';
+                        else { burnActiveCurve(); startNewCurve(p, curTool); } 
+                    } else { startNewCurve(p, curTool); }
+                    return;
+                }
+
+                // 3. 일반 드로잉
+                const drawTools = ['free', 'eraser'];
+                if(drawTools.includes(curTool)) {
+                    if (activeCurve) burnActiveCurve();
+                    isDrawing = true; activeLine = { type: curTool, color: curColor, pts: [p] };
+                    if(curTool === 'eraser') {
+                        const w = parseFloat(document.getElementById('line-width-slider').value);
+                        drawCtx.globalCompositeOperation = 'destination-out';
+                        drawSmoothLine(drawCtx, [p, p], 'eraser', null, w);
+                        drawCtx.globalCompositeOperation = 'source-over'; redraw();
+                    }
+                }
+                
+                // 4. 💡 아이콘 / 텍스트 추가 (무한 팝업 버그 해결)
+                if (curTool === 'custom-text') {
+                    setTool('pan'); // 즉시 pan 모드로 변경 (상태 고착화 차단)
+                    setTimeout(() => { // 비동기 처리로 포인터 블로킹 차단
+                        const txt = prompt("지도에 표시할 글씨를 직접 입력하세요:");
+                        if (txt && txt.trim() !== '') {
+                            stickers.push({ type: 'text-only', text: txt.trim(), realX: rx, realY: ry, scale: currentGlobalScale });
+                            selectedStickerIdx = stickers.length - 1; saveHistory(); redraw();
+                        }
+                    }, 10);
+                }
+                else if (['icon', 'text-only'].includes(curTool) && curIcon) {
+                    setTool('pan'); // 찍자마자 도구 강제 해제
+                    if (curTool === 'text-only') { stickers.push({ type: 'text-only', text: curIcon.text, realX: rx, realY: ry, scale: currentGlobalScale }); } 
+                    else { stickers.push({ type: 'icon', e: curIcon.e, t: curIcon.t, realX: rx, realY: ry, scale: currentGlobalScale }); }
+                    selectedStickerIdx = stickers.length - 1; saveHistory(); redraw();
                 }
             }
-            if (hoverIdx !== -1) { draggingSticker = stickers[hoverIdx]; stickerMoved = false; document.getElementById('sticker-size-slider').value = draggingSticker.scale || 1; return; }
-
-            if (curTool === 'pan') { isDraggingMap = true; startX = mx - panX; startY = my - panY; return; } 
-            
-            // 스티커 찍기
-            if (curTool === 'icon' && curIcon) { stickers.push({ type: 'icon', e: curIcon.e, t: curIcon.t, realX: rx, realY: ry, scale: currentGlobalScale }); saveHistory(); redraw(); return; } 
-            else if (curTool === 'text-only' && curIcon) { stickers.push({ type: 'text-only', text: curIcon.text, realX: rx, realY: ry, scale: currentGlobalScale }); saveHistory(); redraw(); return; } 
-            else if (curTool === 'custom-text') { const txt = prompt("지도에 표시할 글씨를 직접 입력하세요:"); if (txt && txt.trim() !== '') { stickers.push({ type: 'text-only', text: txt.trim(), realX: rx, realY: ry, scale: currentGlobalScale }); saveHistory(); redraw(); } return; }
-
-            // 💡 A안(조절점 방식) 터치 판정
-            if (['arrow-curve', 'arrow-straight'].includes(curTool)) {
-                if (activeCurve) {
-                    const r = 35 / scale; // 조절점 터치 여유 반경
-                    if (Math.hypot(p.x - activeCurve.p0.x, p.y - activeCurve.p0.y) < r) draggedPoint = 'p0';
-                    else if (activeCurve.p1 && Math.hypot(p.x - activeCurve.p1.x, p.y - activeCurve.p1.y) < r) draggedPoint = 'p1';
-                    else if (Math.hypot(p.x - activeCurve.p2.x, p.y - activeCurve.p2.y) < r) draggedPoint = 'p2';
-                    else { burnActiveCurve(); startNewCurve(p, curTool); } // 바깥을 누르면 굽고 새로 시작
-                } else { startNewCurve(p, curTool); }
-                return;
-            } 
-            
-            // 일반 펜, 지우개
-            else if (['free', 'eraser'].includes(curTool)) {
-                if (activeCurve) burnActiveCurve(); // 펜 도구로 바꿨는데 화살표가 남아있으면 굽기
-                isDrawing = true; activeLine = { type: curTool, color: curColor, pts: [p] };
-                if(curTool === 'eraser') { const w = parseFloat(document.getElementById('line-width-slider').value); drawCtx.globalCompositeOperation = 'destination-out'; drawSmoothLine(drawCtx, [p, p], 'eraser', null, w); drawCtx.globalCompositeOperation = 'source-over'; redraw(); }
-            }
-        };
+        });
 
         function startNewCurve(p, type) {
-            activeCurve = { 
-                type: type, color: curColor, w: parseFloat(document.getElementById('line-width-slider').value),
-                p0: {x: p.x, y: p.y}, p2: {x: p.x, y: p.y}, p1: type === 'arrow-curve' ? {x: p.x, y: p.y} : null
-            };
-            draggedPoint = 'p2'; // 처음엔 끝점을 잡고 당기게 만듦
-            redraw();
+            activeCurve = { type: type, color: curColor, w: parseFloat(document.getElementById('line-width-slider').value), p0: {x: p.x, y: p.y}, p2: {x: p.x, y: p.y}, p1: type === 'arrow-curve' ? {x: p.x, y: p.y} : null };
+            draggedPoint = 'p2'; redraw();
         }
 
-        const pointerMove = (e) => {
-            const mx = (e.clientX || e.touches[0].clientX) - cvs.getBoundingClientRect().left;
-            const my = (e.clientY || e.touches[0].clientY) - cvs.getBoundingClientRect().top;
-            const rx = (mx - panX) / scale; const ry = (my - panY) / scale; const p = {x: rx, y: ry};
+        cvs.addEventListener('pointermove', e => {
+            const idx = activePointers.findIndex(p => p.id === e.pointerId);
+            if (idx !== -1) { activePointers[idx].x = e.clientX; activePointers[idx].y = e.clientY; }
 
-            if (draggingSticker) { e.preventDefault(); stickerMoved = true; draggingSticker.realX = rx; draggingSticker.realY = ry; redraw(); return; }
-
-            let found = -1;
-            for (let i = stickers.length - 1; i >= 0; i--) {
-                const sx = stickers[i].realX * scale + panX; const sy = stickers[i].realY * scale + panY; const sScale = stickers[i].scale || 1;
-                if (Math.hypot(mx - sx, my - sy) < (35 * sScale * scale)) { found = i; break; }
-            }
-            if (hoverIdx !== found) { hoverIdx = found; redraw(); }
-
-            if (isDraggingMap && curTool === 'pan') { e.preventDefault(); panX = mx - startX; panY = my - startY; redraw(); return; }
-
-            // 💡 조절점 드래그 처리
-            if (activeCurve && draggedPoint) {
-                activeCurve[draggedPoint] = p;
-                if (curTool === 'arrow-curve' && draggedPoint === 'p2' && !activeCurve.p1_moved) {
-                    activeCurve.p1 = { x: (activeCurve.p0.x + p.x)/2, y: (activeCurve.p0.y + p.y)/2 }; // 끝점 당길때 곡률점 자동 중앙정렬
-                }
-                if (draggedPoint === 'p1') activeCurve.p1_moved = true; // 곡률점을 수동으로 만지면 플래그 ON
-                redraw(); return;
-            }
-
-            if (isDrawing && activeLine) {
-                activeLine.pts.push(p);
-                const w = parseFloat(document.getElementById('line-width-slider').value);
-                if(curTool === 'eraser') { drawSmoothLine(drawCtx, activeLine.pts.slice(-2), 'eraser', null, w); } 
-                else { tempCtx.clearRect(0,0,baseImgW, baseImgH); drawSmoothLine(tempCtx, activeLine.pts, curTool, curColor, w); }
-                redraw(); 
-            }
-        };
-
-        const pointerUp = () => { 
-            if (isDraggingMap) { isDraggingMap = false; }
-            if (activeCurve && draggedPoint) { draggedPoint = null; redraw(); return; } // 조절점 드롭 완료
-            
-            if (isDrawing && activeLine) {
-                isDrawing = false;
-                if (curTool !== 'eraser') {
-                    drawCtx.globalCompositeOperation = 'source-over';
-                    drawCtx.drawImage(tempCanvas, 0, 0); tempCtx.clearRect(0,0,baseImgW, baseImgH); saveHistory();
-                } else { saveHistory(); }
-                activeLine = null; redraw();
-            }
-
-            if (draggingSticker) {
-                if (!stickerMoved) {
-                    const s = draggingSticker; const currentName = s.type === 'text-only' ? s.text : s.t; const newName = prompt("내용을 변경하세요:", currentName);
-                    if (newName !== null && newName.trim() !== "") { if (s.type === 'text-only') s.text = newName.trim(); else s.t = newName.trim(); }
-                }
-                saveHistory(); draggingSticker = null; redraw();
-            }
-        };
-
-        cvs.addEventListener('pointerdown', pointerDown); window.addEventListener('pointermove', pointerMove); window.addEventListener('pointerup', pointerUp);
-        cvs.addEventListener('touchstart', e => { if(curTool==='pan' || hoverIdx !== -1) e.preventDefault(); }, {passive: false});
-        cvs.addEventListener('touchmove', e => { if(isDraggingMap || draggingSticker || isDrawing || activeCurve) e.preventDefault(); }, {passive: false});
-
-        // 제스처 줌
-        cvs.addEventListener('touchstart', e => { if(e.touches.length === 2) { initialPinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); initialScale = scale; }});
-        cvs.addEventListener('touchmove', e => {
-            if(e.touches.length === 2 && initialPinchDist) {
-                e.preventDefault();
-                const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+            if (activePointers.length === 2 && initialPinchDist) {
+                const dist = Math.hypot(activePointers[0].x - activePointers[1].x, activePointers[0].y - activePointers[1].y);
                 const newScale = Math.min(Math.max(0.1, initialScale * (dist / initialPinchDist)), 5);
-                const cx = (e.touches[0].clientX + e.touches[1].clientX)/2 - cvs.getBoundingClientRect().left;
-                const cy = (e.touches[0].clientY + e.touches[1].clientY)/2 - cvs.getBoundingClientRect().top;
+                const cx = (activePointers[0].x + activePointers[1].x)/2 - cvs.getBoundingClientRect().left;
+                const cy = (activePointers[0].y + activePointers[1].y)/2 - cvs.getBoundingClientRect().top;
                 panX = cx - (cx - panX) * (newScale / scale); panY = cy - (cy - panY) * (newScale / scale); scale = newScale; redraw();
+                return;
             }
-        }, {passive: false});
-        cvs.addEventListener('touchend', e => { if(e.touches.length < 2) initialPinchDist = null; });
+
+            if (activePointers.length === 1) {
+                if (curTool === 'pan') { panX = e.clientX - startX; panY = e.clientY - startY; redraw(); return; }
+                const rx = (e.clientX - cvs.getBoundingClientRect().left - panX) / scale; const ry = (e.clientY - cvs.getBoundingClientRect().top - panY) / scale; const p = {x: rx, y: ry};
+
+                if (activeCurve && draggedPoint) {
+                    activeCurve[draggedPoint] = p;
+                    if (curTool === 'arrow-curve' && draggedPoint === 'p2' && !activeCurve.p1_moved) { activeCurve.p1 = { x: (activeCurve.p0.x + p.x)/2, y: (activeCurve.p0.y + p.y)/2 }; }
+                    if (draggedPoint === 'p1') activeCurve.p1_moved = true; redraw(); return;
+                }
+
+                if (isDrawing && activeLine) {
+                    activeLine.pts.push(p); const w = parseFloat(document.getElementById('line-width-slider').value);
+                    if(curTool === 'eraser') { drawSmoothLine(drawCtx, activeLine.pts.slice(-2), 'eraser', null, w); } 
+                    else { tempCtx.clearRect(0,0,baseImgW, baseImgH); drawSmoothLine(tempCtx, activeLine.pts, curTool, curColor, w); }
+                    redraw(); 
+                }
+            }
+        });
+
+        cvs.addEventListener('pointerup', e => {
+            cvs.releasePointerCapture(e.pointerId);
+            activePointers = activePointers.filter(p => p.id !== e.pointerId);
+            if (activePointers.length < 2) initialPinchDist = null;
+
+            if (activePointers.length === 0) {
+                if (activeCurve && draggedPoint) { draggedPoint = null; redraw(); return; }
+                if (isDrawing && activeLine) {
+                    isDrawing = false; 
+                    if(curTool !== 'eraser') {
+                        drawCtx.globalCompositeOperation = 'source-over'; drawCtx.drawImage(tempCanvas, 0, 0); tempCtx.clearRect(0,0,baseImgW, baseImgH);
+                    }
+                    saveHistory(); activeLine = null; redraw();
+                }
+            }
+        });
 
         function redraw() {
             ctx.fillStyle = "#FFFFFF"; ctx.fillRect(0, 0, cvs.width, cvs.height);
@@ -681,24 +675,18 @@
             renderQueue.forEach(key => {
                 if (loadedLayers[key] && loadedLayers[key].naturalWidth) {
                     const chk = document.getElementById(`chk-${key}`);
-                    if (chk && chk.checked) {
-                        ctx.globalAlpha = parseFloat(document.getElementById(`op-${key}`).value); ctx.drawImage(loadedLayers[key], 0, 0, w, h);
-                    }
+                    if (chk && chk.checked) { ctx.globalAlpha = parseFloat(document.getElementById(`op-${key}`).value); ctx.drawImage(loadedLayers[key], 0, 0, w, h); }
                 }
             });
             
-            ctx.globalAlpha = 1.0;
-            ctx.drawImage(drawCanvas, 0, 0, w, h); ctx.drawImage(tempCanvas, 0, 0, w, h);
+            ctx.globalAlpha = 1.0; ctx.drawImage(drawCanvas, 0, 0, w, h); ctx.drawImage(tempCanvas, 0, 0, w, h);
 
-            // 💡 편집 중인 조절점(핸들) 표시
             if (activeCurve) {
                 tempCtx.clearRect(0,0,baseImgW, baseImgH);
                 drawSmoothLine(tempCtx, [activeCurve.p0, activeCurve.p2], activeCurve.type, activeCurve.color, activeCurve.w, activeCurve.p1);
                 
                 ctx.setLineDash([5, 5]); ctx.strokeStyle = '#3498DB'; ctx.lineWidth = 2 / scale;
-                if (activeCurve.type === 'arrow-curve') {
-                    ctx.beginPath(); ctx.moveTo(activeCurve.p0.x, activeCurve.p0.y); ctx.lineTo(activeCurve.p1.x, activeCurve.p1.y); ctx.lineTo(activeCurve.p2.x, activeCurve.p2.y); ctx.stroke();
-                }
+                if (activeCurve.type === 'arrow-curve') { ctx.beginPath(); ctx.moveTo(activeCurve.p0.x, activeCurve.p0.y); ctx.lineTo(activeCurve.p1.x, activeCurve.p1.y); ctx.lineTo(activeCurve.p2.x, activeCurve.p2.y); ctx.stroke(); }
                 ctx.setLineDash([]);
                 
                 const drawHandle = (pt, label) => {
@@ -725,25 +713,41 @@
                     }
                 }
 
-                if (hoverIdx === i || draggingSticker === s) {
-                    ctx.fillStyle = "#E74C3C"; ctx.beginPath(); ctx.arc(sx+(22*sScale), sy-(22*sScale), 16*sScale, 0, Math.PI*2); ctx.fill();
-                    ctx.fillStyle = "white"; ctx.font = `bold ${16*sScale}px sans-serif`; ctx.fillText("X", sx+(22*sScale), sy-(21*sScale));
+                if (selectedStickerIdx === i) {
+                    ctx.strokeStyle = "#5DADE2"; ctx.lineWidth = 3; ctx.setLineDash([8, 8]); ctx.strokeRect(sx - (35*sScale), sy - (35*sScale), 70*sScale, 85*sScale); ctx.setLineDash([]);
+                    
+                    ctx.fillStyle = "#E74C3C"; ctx.beginPath(); ctx.arc(sx+(25*sScale), sy-(25*sScale), 16*sScale, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = "white"; ctx.font = `bold ${16*sScale}px sans-serif`; ctx.fillText("X", sx+(25*sScale), sy-(24*sScale));
+                    
+                    ctx.fillStyle = "#3498DB"; ctx.beginPath(); ctx.arc(sx-(25*sScale), sy-(25*sScale), 16*sScale, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = "white"; ctx.font = `14px sans-serif`; ctx.fillText("✏️", sx-(25*sScale), sy-(24*sScale));
                 }
             });
+
+            if (stickers.length > 0 && showText) drawLegend();
             ctx.restore();
         }
 
-        function handleAction(type) {
-            if(activeCurve) burnActiveCurve(); // 캡처 전 화살표 굽기
-            const tempHoverIdx = hoverIdx; const tempDragging = draggingSticker; hoverIdx = -1; draggingSticker = null; redraw();
+        function drawLegend() {
+            const u = []; stickers.forEach(s => { if(!u.find(x => x.t === s.t)) u.push(s); });
+            if (u.length === 0 || !showText) return;
+            const w = 130, h = 45 + (u.length * 30), lx = 20, ly = 20;
+            ctx.fillStyle = "rgba(255,255,255,0.95)"; ctx.strokeStyle = "#D5D8DC"; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.roundRect(lx, ly, w, h, 15); ctx.fill(); ctx.stroke(); 
+            ctx.fillStyle = "#117A65"; ctx.font = "20px 'Jua'"; ctx.textAlign = "center"; ctx.fillText("🔍 기호 범례", lx + w/2, ly + 25);
+            ctx.textAlign = "left"; ctx.fillStyle = "#4A4A4A";
+            u.forEach((sym, i) => { ctx.font = "18px sans-serif"; ctx.fillText(sym.e, lx + 15, ly + 55 + (i * 30)); ctx.font = "16px 'Jua'"; ctx.fillText(sym.t, lx + 45, ly + 55 + (i * 30)); });
+        }
 
+        function handleAction(type) {
+            if(activeCurve) burnActiveCurve(); const tempSelected = selectedStickerIdx; selectedStickerIdx = -1; redraw();
             cvs.toBlob(blob => {
-                hoverIdx = tempHoverIdx; draggingSticker = tempDragging; redraw();
+                selectedStickerIdx = tempSelected; redraw();
                 if (type === 'submit') {
                     if (window.parent && window.parent.handleMapSave) {
                         const reader = new FileReader(); reader.readAsDataURL(blob);
                         reader.onloadend = function() { window.parent.handleMapSave(reader.result, "지도 겹치기"); }
-                    } else { alert("런처를 통해 접속해야 제출이 가능합니다."); }
+                    } else { alert("런처(메인화면)를 통해서 접속해야 제출이 가능합니다."); }
                 } else if (type === 'download') {
                     const mapName = document.getElementById('map-region').value;
                     const url = URL.createObjectURL(blob); const a = document.createElement('a'); 
@@ -751,8 +755,6 @@
                 }
             }, 'image/jpeg', 0.95);
         }
-
-        window.onload = () => { cvs.width = viewport.clientWidth; cvs.height = viewport.clientHeight; loadMap(); };
     </script>
 </body>
 </html>
