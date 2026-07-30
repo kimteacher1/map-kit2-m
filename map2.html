@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>&lt;MAP KIT&gt; 지도 겹치기 (태블릿 최적화)</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Jua&display=swap');
+        
+        :root {
+            --primary: #48C9B0; 
+            --primary-hover: #1ABC9C;
+            --bg: #F4F6F6;      
+            --panel: #FFFFFF;
+            --text: #4A4A4A;
+            --border: #E5E7E9;
+            --radius-box: 20px;
+        }
+
+        * { box-sizing: border-box; user-select: none; -webkit-touch-callout: none; }
+        body { font-family: 'Jua', sans-serif; margin: 0; padding: 0; background: var(--bg); display: flex; flex-direction: column; height: 100vh; overflow: hidden; color: var(--text); overscroll-behavior: none; }
+
+        /* 💡 1. 초슬림 헤더 */
+        header { background: var(--panel); padding: 8px 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: flex; align-items: center; z-index: 100; height: 60px; flex-shrink: 0; gap: 10px;}
+        .btn-back { background: #E74C3C; color: white; border: none; padding: 8px 15px; border-radius: 12px; font-family: 'Jua', sans-serif; font-size: 1.1rem; cursor: pointer; height: 100%; white-space: nowrap;}
+        
+        .map-selector { display: flex; align-items: center; gap: 10px; flex: 1; height: 100%; }
+        select { height: 100%; flex: 1; border: 2px solid var(--primary); border-radius: 12px; font-family: 'Jua', sans-serif; font-size: 1.1rem; outline: none; background: #FDFDFD; padding: 0 10px; color: var(--primary); font-weight: bold;}
+
+        /* 💡 2. 지도 및 반응형 패널 레이아웃 */
+        main { display: flex; position: relative; width: 100vw; height: calc(100vh - 60px); overflow: hidden; }
+        
+        #map-viewport { flex: 1; position: relative; background: #FFFFFF; overflow: hidden; touch-action: none; }
+        canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+        
+        #loading-msg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 1.5rem; font-weight: bold; color: var(--primary); background: rgba(255,255,255,0.95); padding: 20px 40px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; z-index: 200; border: 2px solid var(--primary); }
+
+        /* 💡 3. 좌측 하단 줌, 우측 하단 제출 플로팅 버튼 */
+        .zoom-controls { position: absolute; bottom: 20px; left: 20px; display: flex; flex-direction: column; gap: 8px; z-index: 50; transition: bottom 0.3s; }
+        .zoom-btn { background: white; border: 2px solid var(--border); border-radius: 50%; width: 50px; height: 50px; font-size: 1.5rem; cursor: pointer; font-family: 'Jua', sans-serif; font-weight: bold; color: var(--text); box-shadow: 0 4px 10px rgba(0,0,0,0.1);}
+        .zoom-btn-rect { border-radius: 12px; width: 50px; height: 40px; font-size: 1rem;}
+
+        .action-controls { position: absolute; bottom: 20px; right: 20px; display: flex; flex-direction: column; align-items: flex-end; gap: 15px; z-index: 50; transition: bottom 0.3s, right 0.3s; }
+        .fab-btn { border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.2); cursor: pointer; display: flex; justify-content: center; align-items: center; font-family: 'Jua', sans-serif; color: white; transition: 0.2s;}
+        .fab-submit { background: #FF9A9E; width: 75px; height: 75px; font-size: 1.3rem; border-radius: 25px; font-weight: bold; flex-direction: column; gap: 2px;}
+        .fab-submit:active { transform: scale(0.95); background: #FF858A; }
+        .fab-save { background: #95A5A6; width: 50px; height: 50px; border-radius: 50%; font-size: 1.4rem; }
+
+        /* 💡 4. 도구 패널 (Bottom Sheet / Side Panel) */
+        aside { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: absolute; z-index: 100; box-shadow: 0 0 20px rgba(0,0,0,0.15); display: flex; flex-direction: column; }
+        .panel-toggle { position: absolute; background: var(--panel); box-shadow: 0 2px 10px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; cursor: pointer; font-family: 'Jua', sans-serif; color: var(--primary); font-size: 1.2rem; border: 1px solid #ddd; z-index: 101;}
+        
+        .panel-content { flex: 1; display: flex; flex-direction: column; padding: 15px; overflow: hidden; }
+        
+        /* 패널 3단 탭 메뉴 */
+        .ptab-menu { display: flex; gap: 5px; background: #F0F3F4; padding: 6px; border-radius: 14px; margin-bottom: 15px; flex-shrink: 0;}
+        .ptab-btn { flex: 1; padding: 10px; border: none; background: transparent; font-family: 'Jua', sans-serif; font-size: 1.15rem; border-radius: 10px; color: #7F8C8D; cursor: pointer; transition: 0.2s;}
+        .ptab-btn.active { background: white; color: var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.05); font-weight: bold;}
+        
+        .tab-content { display: none; flex-direction: column; gap: 15px; flex: 1; overflow-y: auto; padding-right: 5px;}
+        .tab-content.active { display: flex; }
+
+        /* 반응형: 가로 모드 (Right Side Panel) */
+        @media (orientation: landscape) {
+            aside { right: 0; top: 0; height: 100%; width: 360px; transform: translateX(360px); border-left: 1px solid #ddd; border-top-left-radius: 20px; border-bottom-left-radius: 20px;}
+            aside.open { transform: translateX(0); }
+            .panel-toggle { left: -45px; top: 50%; transform: translateY(-50%); width: 45px; height: 110px; border-radius: 16px 0 0 16px; border-right: none; writing-mode: vertical-rl; text-orientation: mixed; letter-spacing: 2px;}
+            body.panel-open .action-controls { right: calc(360px + 20px); }
+        }
+
+        /* 반응형: 세로 모드 (Bottom Sheet) */
+        @media (orientation: portrait) {
+            aside { bottom: 0; left: 0; width: 100%; height: 45vh; transform: translateY(45vh); border-top: 1px solid #ddd; border-top-left-radius: 24px; border-top-right-radius: 24px;}
+            aside.open { transform: translateY(0); }
+            .panel-toggle { top: -45px; left: 50%; transform: translateX(-50%); width: 130px; height: 45px; border-radius: 16px 16px 0 0; border-bottom: none;}
+            body.panel-open .action-controls, body.panel-open .zoom-controls { bottom: calc(45vh + 20px); }
+        }
+
+        /* 💡 카드형 레이어 디자인 (개선) */
+        .layer-card-container { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; flex: 1; }
+        .layer-card { background: #F8F9F9; border: 2px solid var(--border); border-radius: 14px; padding: 12px 15px; display: flex; flex-direction: column; gap: 8px; }
+        .layer-card-top { display: flex; align-items: center; justify-content: space-between; }
+        .layer-card-top label { font-size: 1.15rem; color: #2C3E50; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px;}
+        .layer-card input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--primary); cursor: pointer; }
+        .layer-card input[type="range"] { width: 100%; accent-color: var(--primary); cursor: pointer; }
+
+        /* 도구 및 색상 UI */
+        .color-picker-group { display: flex; gap: 8px; align-items: center; justify-content: center; background: #F4F6F7; padding: 10px; border-radius: 14px;}
+        .color-preset { width: 35px; height: 35px; border-radius: 50%; cursor: pointer; border: 2px solid #BDC3C7; transition: 0.2s; }
+        .color-preset.active { transform: scale(1.15); border-color: #2C3E50; }
+        #custom-color { width: 38px; height: 38px; padding: 0; border: none; border-radius: 8px; cursor: pointer; background: transparent;}
+
+        .btn-grid { display: grid; gap: 8px; }
+        .grid-3 { grid-template-columns: repeat(3, 1fr); }
+        .grid-2 { grid-template-columns: repeat(2, 1fr); }
+        
+        .tool-btn { padding: 14px 5px; border: 2px solid var(--border); border-radius: 14px; background: white; cursor: pointer; font-size: 1.1rem; font-family: 'Jua', sans-serif; color: var(--text); }
+        .tool-btn.selected { border-color: var(--primary); background: #E8F8F5; color: var(--primary-hover); }
+        .btn-danger { color: #E74C3C; font-weight: bold; background: #FDEDEC; border-color: #F5B7B1;}
+        .action-btn { background: #F8F9F9; border-color: #D5D8DC; }
+
+        .slider-container { display: flex; align-items: center; gap: 12px; background: #F8F9F9; padding: 12px 15px; border-radius: 14px; border: 1px solid var(--border);}
+        .slider-container label { font-size: 1.1rem; color: var(--primary-hover); white-space: nowrap; font-weight:bold;}
+        .slider-container input[type="range"] { flex: 1; accent-color: var(--primary); }
+
+        .tab-menu { display: flex; gap: 4px; flex-shrink: 0; }
+        .tab-btn { flex: 1; padding: 10px; font-size: 1.1rem; border: none; background: #F0F3F4; color: #7F8C8D; border-radius: 12px; cursor: pointer; font-family: 'Jua', sans-serif; }
+        .tab-btn.active { background: #E8F8F5; color: #117A65; font-weight: bold; border: 2px solid #1ABC9C; }
+
+        .sticker-list { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; overflow-y: auto; flex: 1; padding: 5px; }
+        .sticker-item { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 75px; border: 2px solid transparent; border-radius: 14px; cursor: pointer; font-size: 0.85rem; background: #FDFDFD; box-shadow: 0 2px 5px rgba(0,0,0,0.05); text-align: center;}
+        .sticker-item.selected { background: #E8F8F5; border-color: var(--primary); transform: scale(1.05); }
+        .sticker-emoji { font-size: 1.8rem; margin-bottom: 2px; }
+
+        #curve-hint { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.7); color: #F1C40F; padding: 8px 20px; border-radius: 20px; font-size: 1.1rem; display: none; z-index: 200; pointer-events: none; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <button class="btn-back" onclick="if(window.parent && window.parent.closeApp) window.parent.closeApp(); else history.back();">🔙</button>
+        <div class="map-selector">
+            <select id="map-region" onchange="loadMap()">
+                <option value="남한전도">남한전도</option>
+                <option value="대한민국전도">대한민국전도</option>
+                <option value="세계지도">세계지도</option>
+            </select>
+        </div>
+    </header>
+
+    <main>
+        <div id="map-viewport">
+            <div id="curve-hint">👆 선의 가운데를 클릭한 채 드래그하여 곡선을 구부리세요!</div>
+            <div id="loading-msg">지도를 불러오는 중이에요!<br><span style="font-size:1rem; color:#7F8C8D; font-weight:normal;" id="loading-sub"></span></div>
+            <canvas id="mapCanvas"></canvas>
+            
+            <div class="zoom-controls">
+                <button class="zoom-btn" onclick="zoom(1.2)">+</button>
+                <button class="zoom-btn zoom-btn-rect" onclick="resetZoom()">맞춤</button>
+                <button class="zoom-btn" onclick="zoom(0.8)">-</button>
+            </div>
+
+            <div class="action-controls">
+                <button class="fab-btn fab-save" onclick="handleAction('download')" title="기기에 저장">📥</button>
+                <button class="fab-btn fab-submit" onclick="handleAction('submit')"><span>📤</span><span>제출</span></button>
+            </div>
+        </div>
+
+        <aside id="tool-panel">
+            <div class="panel-toggle" id="panel-toggle" onclick="togglePanel()">▲ 도구</div>
+            <div class="panel-content">
+                <div class="ptab-menu">
+                    <button class="ptab-btn active" id="btn-tab-layer" onclick="switchPanelTab('layer')">📚 레이어</button>
+                    <button class="ptab-btn" id="btn-tab-draw" onclick="switchPanelTab('draw')">✏️ 그리기</button>
+                    <button class="ptab-btn" id="btn-tab-sticker" onclick="switchPanelTab('sticker')">🏠 스티커</button>
+                </div>
+
+                <!-- 1. 레이어 탭 (카드형 디자인 적용) -->
+                <div class="tab-content active" id="tab-layer">
+                    <div class="layer-card-container" id="layer-container"></div>
+                </div>
+
+                <!-- 2. 그리기 탭 -->
+                <div class="tab-content" id="tab-draw">
+                    <div class="color-picker-group">
+                        <div class="color-preset active" style="background:#FF66CC;" onclick="setColor('#FF66CC', this)" title="분홍"></div>
+                        <div class="color-preset" style="background:#87CEEB;" onclick="setColor('#87CEEB', this)" title="하늘"></div>
+                        <div class="color-preset" style="background:#90EE90;" onclick="setColor('#90EE90', this)" title="연두"></div>
+                        <div class="color-preset" style="background:#FFD700;" onclick="setColor('#FFD700', this)" title="노랑"></div>
+                        <div class="color-preset" style="background:#34495E;" onclick="setColor('#34495E', this)" title="검정"></div>
+                        <input type="color" id="custom-color" value="#E74C3C" onchange="setColor(this.value, null)">
+                    </div>
+
+                    <div class="btn-grid grid-3">
+                        <button class="tool-btn action-btn" id="btn-undo" onclick="undo()" style="opacity: 0.4;">↩️ 취소</button>
+                        <button class="tool-btn action-btn" id="btn-redo" onclick="redo()" style="opacity: 0.4;">↪️ 복구</button>
+                        <button class="tool-btn btn-danger" onclick="clearDrawings()">🗑️ 싹지우기</button>
+                    </div>
+                    
+                    <div class="btn-grid grid-3">
+                        <button class="tool-btn" id="tool-arrow-curve" onclick="setTool('arrow-curve')">↪️곡선</button>
+                        <button class="tool-btn" id="tool-arrow-straight" onclick="setTool('arrow-straight')">📏직선</button>
+                        <button class="tool-btn" id="tool-free" onclick="setTool('free')">✍️펜</button>
+                    </div>
+                    <div class="btn-grid grid-2">
+                        <button class="tool-btn" id="tool-eraser" onclick="setTool('eraser')">🧽 지우개</button>
+                        <button class="tool-btn selected" id="tool-pan" onclick="setTool('pan')">🤚 이동</button>
+                    </div>
+                    
+                    <div class="slider-container">
+                        <label>펜 굵기</label>
+                        <input type="range" id="line-width-slider" min="0.3" max="4" step="0.1" value="1.5">
+                    </div>
+                </div>
+
+                <!-- 3. 스티커 탭 -->
+                <div class="tab-content" id="tab-sticker">
+                    <div class="slider-container" style="background: #E8F8F5; border-color: var(--primary);">
+                        <label style="color: var(--primary-hover);">개별 크기</label>
+                        <input type="range" id="sticker-size-slider" min="0.5" max="3" step="0.1" value="1" oninput="updateStickerSize(this.value)">
+                    </div>
+
+                    <div class="tab-menu">
+                        <button class="tab-btn active" id="btn-tab-icon" onclick="switchStickerSubTab('icon')">🎨 기호</button>
+                        <button class="tab-btn" id="btn-tab-text" onclick="switchStickerSubTab('text')">📝 이름</button>
+                    </div>
+
+                    <div class="sticker-list" id="icon-pack-container"></div>
+                    <div class="sticker-list" id="text-pack-container" style="display: none;"></div>
+                </div>
+
+            </div>
+        </aside>
+    </main>
+
+    <script>
+        // --- 💡 바텀시트 / 사이드 패널 토글 로직 ---
+        let isPanelOpen = false;
+        function togglePanel() {
+            isPanelOpen = !isPanelOpen;
+            document.getElementById('tool-panel').classList.toggle('open', isPanelOpen);
+            document.body.classList.toggle('panel-open', isPanelOpen);
+            updateToggleText();
+        }
+        
+        function updateToggleText() {
+            const btn = document.getElementById('panel-toggle');
+            const isLandscape = window.innerWidth > window.innerHeight;
+            if(isPanelOpen) btn.innerHTML = isLandscape ? '▶ 닫기' : '▼ 닫기';
+            else btn.innerHTML = isLandscape ? '◀ 도구' : '▲ 도구';
+        }
+        window.addEventListener('resize', updateToggleText);
+
+        function switchPanelTab(tabId) {
+            document.querySelectorAll('.ptab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.getElementById('btn-tab-' + tabId).classList.add('active');
+            document.getElementById('tab-' + tabId).classList.add('active');
+        }
+
+        function switchStickerSubTab(sub) {
+            document.getElementById('btn-tab-icon').classList.toggle('active', sub === 'icon');
+            document.getElementById('btn-tab-text').classList.toggle('active', sub === 'text');
+            document.getElementById('icon-pack-container').style.display = sub === 'icon' ? 'grid' : 'none';
+            document.getElementById('text-pack-container').style.display = sub === 'text' ? 'grid' : 'none';
+        }
+
+        // --- 🗺️ 기존 지도 겹치기 코어 엔진 (완벽 호환) ---
+        const GITHUB_BASE_URL = "https://kimteacher1.github.io/korea-map-layer/";
+
+        const mapConfigs = {
+            "남한전도": {
+                base: { id: "base", name: "바탕" },
+                layers: [
+                    { id: 'terrain', name: '지형', emoji: '⛰️' }, { id: 'pop', name: '인구분포', emoji: '👥' },
+                    { id: 'mountain', name: '주요산맥', emoji: '🏔️' }, { id: 'river', name: '주요하천', emoji: '🌊' },
+                    { id: 'road', name: '주요도로', emoji: '🛣️' }, { id: 'rail', name: '주요철도', emoji: '🚂' }
+                ],
+                fileSuffix: "-.png"
+            },
+            "대한민국전도": {
+                base: { id: "base", name: "경계" },
+                layers: [
+                    { id: 'terrain', name: '지형', emoji: '⛰️' },
+                    { id: 'mountain', name: '주요산맥', emoji: '🏔️' }, { id: 'river', name: '주요하천', emoji: '🌊' }
+                ],
+                fileSuffix: "-.png"
+            },
+            "세계지도": {
+                base: { id: "base", name: "경계" },
+                layers: [
+                    { id: 'terrain', name: '지형', emoji: '⛰️' }, { id: 'pop', name: '인구분포', emoji: '👥' },
+                    { id: 'desert', name: '주요사막', emoji: '🐫' }, { id: 'mountain', name: '주요산맥', emoji: '🏔️' },
+                    { id: 'river', name: '주요하천', emoji: '🌊' }, { id: 'tectonic', name: '판구조도', emoji: '🧩' },
+                    { id: 'current', name: '해류', emoji: '🌀' }
+                ],
+                fileSuffix: ".png"
+            }
+        };
+
+        const domesticIcons = [
+            { e: "⛰️", t: "산", c: "nature" }, { e: "🏔️", t: "봉우리", c: "nature" }, { e: "🌊", t: "강", c: "nature" }, { e: "🏞️", t: "하천", c: "nature" }, 
+            { e: "💧", t: "호수", c: "nature" }, { e: "🏖️", t: "바다", c: "nature" }, { e: "🏝️", t: "섬", c: "nature" }, { e: "🌾", t: "평야", c: "nature" }, 
+            { e: "🗺️", t: "반도", c: "nature" }, { e: "🏕️", t: "계곡", c: "nature" }, { e: "🦀", t: "갯벌", c: "nature" }, { e: "🌲", t: "숲", c: "nature" },
+            { e: "🏠", t: "우리집", c: "human" }, { e: "🏘️", t: "아파트", c: "human" }, { e: "🌾", t: "논", c: "human" }, { e: "🌽", t: "밭", c: "human" }, 
+            { e: "🍎", t: "과수원", c: "human" }, { e: "🚏", t: "정류장", c: "human" }, { e: "🚉", t: "지하철역", c: "human" }, { e: "🚆", t: "기차역", c: "human" }, 
+            { e: "🚍", t: "터미널", c: "human" }, { e: "⚓", t: "항구", c: "human" }, { e: "✈️", t: "공항", c: "human" }, { e: "🏭", t: "공장", c: "human" },
+            { e: "🏫", t: "학교", c: "facility" }, { e: "🚓", t: "경찰서", c: "facility" }, { e: "🚒", t: "소방서", c: "facility" }, { e: "📮", t: "우체국", c: "facility" }, 
+            { e: "🏛️", t: "시/구청", c: "facility" }, { e: "🏢", t: "주민센터", c: "facility" }, { e: "📖", t: "도서관", c: "facility" }, { e: "🏥", t: "병원", c: "facility" }, 
+            { e: "🏬", t: "마트", c: "facility" }, { e: "🏦", t: "은행", c: "facility" }, { e: "🏛️", t: "박물관", c: "facility" }, { e: "✚", t: "보건소", c: "facility" }
+        ];
+
+        const worldIcons = [
+            { e: "📍", t: "주요도시" }, { e: "◉", t: "수도" }, { e: "⭐", t: "핵심지역" }, { e: "🏛️", t: "국가기관" }, { e: "🏭", t: "산업단지" },
+            { e: "✈️", t: "국제공항" }, { e: "⚓", t: "주요항구" }, { e: "🚄", t: "대륙횡단철도" }, { e: "🚢", t: "운하/해협" }, { e: "⛽", t: "자원산지" },
+            { e: "⛰️", t: "세계명산" }, { e: "🌊", t: "대하천" }, { e: "🐫", t: "주요사막" }, { e: "💧", t: "대호수" }, { e: "🌲", t: "열대우림" }
+        ];
+
+        const domesticTexts = ["태백산맥", "소백산맥", "호남평야", "나주평야", "한강", "낙동강", "금강", "영산강", "서울특별시", "부산광역시", "제주특별자치도"];
+        const worldTexts = ["태평양", "대서양", "인도양", "남극해", "북극해", "아시아", "유럽", "아프리카", "북아메리카", "남아메리카", "오세아니아", "남극대륙"];
+
+        let drawCanvas = document.createElement('canvas'); let drawCtx = drawCanvas.getContext('2d');
+        let tempCanvas = document.createElement('canvas'); let tempCtx = tempCanvas.getContext('2d');
+
+        let historyStack = []; let stickerHistoryStack = []; let historyStep = -1;
+        let curveState = 0; let curvePts = { p0: null, p1: null, p2: null }; 
+
+        let loadedLayers = {};
+        let scale = 1, panX = 0, panY = 0;
+        let isDraggingMap = false, startX, startY;
+        
+        let curTool = 'pan'; let curColor = '#FF66CC'; let curIcon = null;
+        let isDrawing = false; let activeLine = null;
+        let stickers = []; let hoverIdx = -1; let showText = true;
+        let draggingSticker = null; let stickerMoved = false;
+
+        function buildUI(mapPrefix) {
+            const config = mapConfigs[mapPrefix];
+            const layerBox = document.getElementById('layer-container');
+            
+            // 💡 카드형 레이어 UI 빌드
+            layerBox.innerHTML = `
+                <div class="layer-card">
+                    <div class="layer-card-top">
+                        <label><input type="checkbox" id="chk-base" checked onchange="redraw()"> 🏞️ ${config.base.name}</label>
+                    </div>
+                    <input type="range" id="op-base" min="0" max="1" step="0.1" value="1" oninput="redraw()">
+                </div>
+            `;
+            config.layers.forEach(l => {
+                layerBox.innerHTML += `
+                    <div class="layer-card">
+                        <div class="layer-card-top">
+                            <label><input type="checkbox" id="chk-${l.id}" onchange="redraw()"> ${l.emoji} ${l.name}</label>
+                        </div>
+                        <input type="range" id="op-${l.id}" min="0" max="1" step="0.1" value="0.8" oninput="redraw()">
+                    </div>
+                `;
+            });
+
+            const isWorld = (mapPrefix === '세계지도');
+            const activeIcons = isWorld ? worldIcons : domesticIcons;
+            const activeTexts = isWorld ? worldTexts : domesticTexts;
+            
+            const iconContainer = document.getElementById('icon-pack-container');
+            const textContainer = document.getElementById('text-pack-container');
+            iconContainer.innerHTML = ''; textContainer.innerHTML = '';
+            
+            const customDiv = document.createElement('div'); 
+            customDiv.className = 'sticker-item'; customDiv.style.gridColumn = 'span 4';
+            customDiv.style.background = '#E8F8F5'; customDiv.style.color = '#1ABC9C'; customDiv.style.fontWeight = 'bold';
+            customDiv.innerHTML = '✍️ 직접 글씨 입력하기';
+            customDiv.onclick = () => { setTool('custom-text'); curIcon = null; document.querySelectorAll('.sticker-item').forEach(el => el.classList.remove('selected')); customDiv.classList.add('selected'); };
+            textContainer.appendChild(customDiv);
+
+            activeTexts.forEach(t => {
+                const div = document.createElement('div'); div.className = 'sticker-item';
+                div.style.gridColumn = 'span 2';
+                div.innerHTML = `<span style="font-size:1rem; font-weight:bold; color:#2980B9;">${t}</span>`;
+                div.onclick = () => { setTool('text-only'); curIcon = { text: t }; document.querySelectorAll('.sticker-item').forEach(el => el.classList.remove('selected')); div.classList.add('selected'); };
+                textContainer.appendChild(div);
+            });
+
+            activeIcons.forEach(item => {
+                const div = document.createElement('div'); div.className = 'sticker-item';
+                div.innerHTML = `<div class="sticker-emoji">${item.e}</div><div>${item.t}</div>`;
+                div.onclick = () => { setTool('icon'); curIcon = { e: item.e, t: item.t }; document.querySelectorAll('.sticker-item').forEach(el => el.classList.remove('selected')); div.classList.add('selected'); };
+                iconContainer.appendChild(div);
+            });
+        }
+
+        function saveHistory() {
+            historyStep++;
+            historyStack = historyStack.slice(0, historyStep);
+            stickerHistoryStack = stickerHistoryStack.slice(0, historyStep);
+            historyStack.push(drawCtx.getImageData(0, 0, drawCanvas.width, drawCanvas.height));
+            stickerHistoryStack.push(JSON.parse(JSON.stringify(stickers)));
+            updateHistoryBtns();
+        }
+
+        function undo() {
+            if(historyStep > 0) {
+                historyStep--;
+                drawCtx.putImageData(historyStack[historyStep], 0, 0);
+                stickers = JSON.parse(JSON.stringify(stickerHistoryStack[historyStep]));
+                resetCurveState(); redraw(); updateHistoryBtns();
+            }
+        }
+
+        function redo() {
+            if(historyStep < historyStack.length - 1) {
+                historyStep++;
+                drawCtx.putImageData(historyStack[historyStep], 0, 0);
+                stickers = JSON.parse(JSON.stringify(stickerHistoryStack[historyStep]));
+                resetCurveState(); redraw(); updateHistoryBtns();
+            }
+        }
+
+        function updateHistoryBtns() {
+            document.getElementById('btn-undo').style.opacity = historyStep > 0 ? "1" : "0.4";
+            document.getElementById('btn-redo').style.opacity = historyStep < historyStack.length - 1 ? "1" : "0.4";
+        }
+
+        function resetCurveState() {
+            curveState = 0; document.getElementById('curve-hint').style.display = 'none';
+            tempCtx.clearRect(0,0,tempCanvas.width, tempCanvas.height);
+        }
+
+        function setTool(t) {
+            curTool = t; 
+            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('selected'));
+            if(document.getElementById('tool-' + t)) document.getElementById('tool-' + t).classList.add('selected');
+            if(t !== 'icon' && t !== 'text-only' && t !== 'custom-text') {
+                document.querySelectorAll('.sticker-item').forEach(b => b.classList.remove('selected'));
+                curIcon = null;
+            }
+            resetCurveState();
+        }
+
+        function setColor(color, btn) {
+            curColor = color;
+            document.querySelectorAll('.color-preset').forEach(b => b.classList.remove('active'));
+            if(btn) btn.classList.add('active');
+        }
+
+        function clearDrawings() {
+            if(confirm("그린 펜 자국과 스티커를 싹 지울까요?")) {
+                stickers = []; drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+                resetCurveState(); saveHistory(); redraw();
+            }
+        }
+
+        function loadMap() {
+            const mapPrefix = document.getElementById('map-region').value;
+            const config = mapConfigs[mapPrefix];
+            buildUI(mapPrefix);
+            msg.style.display = 'block';
+            document.getElementById('loading-sub').innerText = `주제도 데이터를 가져오고 있습니다.`;
+            
+            loadedLayers = {};
+            let toLoad = [{ id: 'base', name: config.base.name }, ...config.layers];
+            let loadedCount = 0;
+
+            toLoad.forEach(layer => {
+                const img = new Image(); img.crossOrigin = "Anonymous";
+                const url = `${GITHUB_BASE_URL}${mapPrefix}-${layer.name}${config.fileSuffix}`;
+                img.onload = () => { loadedLayers[layer.id] = img; loadedCount++; if(loadedCount === toLoad.length) finalizeLoad(); };
+                img.onerror = () => { loadedCount++; if(loadedCount === toLoad.length) finalizeLoad(); };
+                img.src = url;
+            });
+        }
+
+        function finalizeLoad() {
+            let refImg = loadedLayers['base'] || Object.values(loadedLayers)[0];
+            if (refImg && refImg.naturalWidth) {
+                drawCanvas.width = tempCanvas.width = refImg.naturalWidth;
+                drawCanvas.height = tempCanvas.height = refImg.naturalHeight;
+            }
+            msg.style.display = 'none';
+            stickers = []; historyStack = []; stickerHistoryStack = []; historyStep = -1;
+            drawCtx.clearRect(0,0,drawCanvas.width, drawCanvas.height);
+            saveHistory(); resetZoom();
+        }
+
+        function zoom(factor) {
+            const newScale = Math.min(Math.max(0.1, scale * factor), 5);
+            const cx = cvs.width / 2; const cy = cvs.height / 2;
+            panX = cx - (cx - panX) * (newScale / scale); panY = cy - (cy - panY) * (newScale / scale);
+            scale = newScale; redraw();
+        }
+
+        function resetZoom() {
+            let refImg = loadedLayers['base'] || Object.values(loadedLayers)[0];
+            if (!refImg || !refImg.naturalWidth) return;
+            const w = refImg.naturalWidth; const h = refImg.naturalHeight;
+            scale = Math.min(cvs.width / w, cvs.height / h) * 0.95;
+            panX = (cvs.width - w * scale) / 2; panY = (cvs.height - h * scale) / 2;
+            redraw();
+        }
+
+        window.addEventListener('resize', () => { cvs.width = viewport.clientWidth; cvs.height = viewport.clientHeight; resetZoom(); });
+
+        cvs.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const mx = e.clientX - cvs.getBoundingClientRect().left; const my = e.clientY - cvs.getBoundingClientRect().top;
+            const factor = e.deltaY < 0 ? 1.1 : 0.9;
+            const newScale = Math.min(Math.max(0.1, scale * factor), 5);
+            panX = mx - (mx - panX) * (newScale / scale); panY = my - (my - panY) * (newScale / scale);
+            scale = newScale; redraw();
+        });
+
+        function drawSmoothLine(context, pts, type, color, w) {
+            if (pts.length === 0) return;
+            context.beginPath(); context.moveTo(pts[0].x, pts[0].y);
+
+            let pLast = pts[pts.length - 1];
+            let pPrev = pts.length > 1 ? pts[pts.length - 2] : pts[0];
+            let angle = Math.atan2(pLast.y - pPrev.y, pLast.x - pPrev.x);
+            
+            let headlen = (type === 'arrow-curve' || type === 'arrow-straight') ? (w * 8 + 10) : 0;
+            let lineEndX = pLast.x - headlen * 0.8 * Math.cos(angle);
+            let lineEndY = pLast.y - headlen * 0.8 * Math.sin(angle);
+
+            if (type === 'arrow-straight') {
+                context.lineTo(lineEndX, lineEndY);
+            } else if (type === 'arrow-curve') {
+                if(curvePts.p1) {
+                    angle = Math.atan2(pLast.y - curvePts.p1.y, pLast.x - curvePts.p1.x);
+                    lineEndX = pLast.x - headlen * 0.8 * Math.cos(angle);
+                    lineEndY = pLast.y - headlen * 0.8 * Math.sin(angle);
+                    context.quadraticCurveTo(curvePts.p1.x, curvePts.p1.y, lineEndX, lineEndY);
+                } else {
+                    context.lineTo(lineEndX, lineEndY);
+                }
+            } else {
+                if (pts.length === 1) { context.lineTo(pts[0].x + 0.1, pts[0].y); } 
+                else {
+                    for (let i = 1; i < pts.length - 2; i++) {
+                        let xc = (pts[i].x + pts[i + 1].x) / 2; let yc = (pts[i].y + pts[i + 1].y) / 2;
+                        context.quadraticCurveTo(pts[i].x, pts[i].y, xc, yc);
+                    }
+                    context.quadraticCurveTo(pPrev.x, pPrev.y, lineEndX, lineEndY);
+                }
+            }
+
+            if(type === 'eraser') {
+                context.globalCompositeOperation = 'destination-out';
+                context.strokeStyle = "rgba(0,0,0,1)"; context.lineWidth = 50 * w; context.lineCap = "round";
+            } else {
+                context.globalCompositeOperation = 'source-over';
+                context.strokeStyle = color || '#000'; context.lineWidth = 8 * w; 
+                context.lineCap = (type === 'arrow-curve' || type === 'arrow-straight') ? "butt" : "round"; 
+            }
+            context.lineJoin = "round"; context.stroke();
+
+            if ((type === 'arrow-curve' || type === 'arrow-straight') && pts.length > 1) {
+                headlen = 35 * w; 
+                context.beginPath(); context.moveTo(pLast.x, pLast.y);
+                context.lineTo(pLast.x - headlen * Math.cos(angle - Math.PI / 7), pLast.y - headlen * Math.sin(angle - Math.PI / 7));
+                context.lineTo(pLast.x - headlen * Math.cos(angle + Math.PI / 7), pLast.y - headlen * Math.sin(angle + Math.PI / 7));
+                context.closePath(); context.fillStyle = color || '#000'; context.globalCompositeOperation = 'source-over'; context.fill();
+            }
+        }
+
+        const pointerDown = (e) => {
+            if(e.pointerType === 'touch' && !e.isPrimary) return;
+            const mx = (e.clientX || e.touches[0].clientX) - cvs.getBoundingClientRect().left;
+            const my = (e.clientY || e.touches[0].clientY) - cvs.getBoundingClientRect().top;
+            const rx = (mx - panX) / scale; const ry = (my - panY) / scale;
+            const p = {x: rx, y: ry};
+            const currentGlobalScale = parseFloat(document.getElementById('sticker-size-slider').value) || 1;
+
+            for (let i = stickers.length - 1; i >= 0; i--) {
+                const s = stickers[i];
+                const sx = s.realX * scale + panX; const sy = s.realY * scale + panY;
+                const sScale = s.scale || 1; 
+
+                if (hoverIdx === i && Math.hypot(mx - (sx + (18 * sScale * scale)), my - (sy - (18 * sScale * scale))) < 25) {
+                    stickers.splice(i, 1); hoverIdx = -1; saveHistory(); redraw(); return; 
+                }
+            }
+
+            if (hoverIdx !== -1) {
+                draggingSticker = stickers[hoverIdx]; stickerMoved = false; 
+                document.getElementById('sticker-size-slider').value = draggingSticker.scale || 1;
+                return; 
+            }
+
+            if (curTool === 'pan') { isDraggingMap = true; startX = mx - panX; startY = my - panY; return; } 
+            
+            if (curTool === 'icon' && curIcon) {
+                stickers.push({ type: 'icon', e: curIcon.e, t: curIcon.t, realX: rx, realY: ry, scale: currentGlobalScale });
+                saveHistory(); redraw(); return;
+            } else if (curTool === 'text-only' && curIcon) {
+                stickers.push({ type: 'text-only', text: curIcon.text, realX: rx, realY: ry, scale: currentGlobalScale });
+                saveHistory(); redraw(); return;
+            } else if (curTool === 'custom-text') {
+                const txt = prompt("지도에 표시할 글씨를 직접 입력하세요:");
+                if (txt && txt.trim() !== '') {
+                    stickers.push({ type: 'text-only', text: txt.trim(), realX: rx, realY: ry, scale: currentGlobalScale });
+                    saveHistory(); redraw();
+                }
+                return;
+            }
+
+            if (curTool === 'arrow-curve') {
+                if (curveState === 0) {
+                    isDrawing = true; curvePts = { p0: p, p1: null, p2: p };
+                    activeLine = { type: curTool, color: curColor, pts: [p, p] };
+                } else if (curveState === 1) {
+                    drawCtx.globalCompositeOperation = 'source-over';
+                    drawCtx.drawImage(tempCanvas, 0, 0); tempCtx.clearRect(0,0,tempCanvas.width, tempCanvas.height);
+                    resetCurveState(); saveHistory(); redraw();
+                }
+            } else if (['arrow-straight', 'free', 'eraser'].includes(curTool)) {
+                isDrawing = true; activeLine = { type: curTool, color: curColor, pts: [p] };
+                if(curTool === 'eraser') {
+                    const w = parseFloat(document.getElementById('line-width-slider').value);
+                    drawCtx.globalCompositeOperation = 'destination-out';
+                    drawSmoothLine(drawCtx, [p, p], 'eraser', null, w);
+                    drawCtx.globalCompositeOperation = 'source-over';
+                    redraw();
+                }
+            }
+        };
+
+        const pointerMove = (e) => {
+            const mx = (e.clientX || e.touches[0].clientX) - cvs.getBoundingClientRect().left;
+            const my = (e.clientY || e.touches[0].clientY) - cvs.getBoundingClientRect().top;
+            const rx = (mx - panX) / scale; const ry = (my - panY) / scale;
+            const p = {x: rx, y: ry};
+
+            if (draggingSticker) {
+                e.preventDefault(); stickerMoved = true;
+                draggingSticker.realX = rx; draggingSticker.realY = ry;
+                redraw(); return;
+            }
+
+            let found = -1;
+            for (let i = stickers.length - 1; i >= 0; i--) {
+                const sx = stickers[i].realX * scale + panX; const sy = stickers[i].realY * scale + panY;
+                const sScale = stickers[i].scale || 1;
+                if (Math.hypot(mx - sx, my - sy) < (35 * sScale * scale)) { found = i; break; }
+            }
+            if (hoverIdx !== found) { hoverIdx = found; redraw(); }
+
+            if (isDraggingMap && curTool === 'pan') {
+                e.preventDefault(); panX = mx - startX; panY = my - startY; redraw(); return;
+            }
+
+            if (curTool === 'arrow-curve' && curveState === 1) {
+                curvePts.p1 = p; tempCtx.clearRect(0,0,tempCanvas.width, tempCanvas.height);
+                const w = parseFloat(document.getElementById('line-width-slider').value);
+                drawSmoothLine(tempCtx, [curvePts.p0, curvePts.p2], 'arrow-curve', curColor, w);
+                redraw(); return;
+            }
+
+            if (isDrawing && activeLine) {
+                if(curTool === 'arrow-straight') {
+                    activeLine.pts = [activeLine.pts[0], p];
+                } else if (curTool === 'arrow-curve') {
+                    activeLine.pts = [activeLine.pts[0], p]; curvePts.p2 = p; 
+                } else {
+                    activeLine.pts.push(p);
+                }
+
+                const w = parseFloat(document.getElementById('line-width-slider').value);
+                if(curTool === 'eraser') {
+                    drawSmoothLine(drawCtx, activeLine.pts.slice(-2), 'eraser', null, w);
+                } else {
+                    tempCtx.clearRect(0,0,tempCanvas.width, tempCanvas.height);
+                    drawSmoothLine(tempCtx, activeLine.pts, curTool, curColor, w);
+                }
+                redraw(); 
+            }
+        };
+
+        const pointerUp = () => { 
+            if (isDraggingMap) { isDraggingMap = false; }
+            if (isDrawing && activeLine) {
+                isDrawing = false;
+                if (curTool === 'arrow-curve') {
+                    if (Math.hypot(curvePts.p2.x - curvePts.p0.x, curvePts.p2.y - curvePts.p0.y) < 10) {
+                        resetCurveState();
+                    } else {
+                        curveState = 1; document.getElementById('curve-hint').style.display = 'block';
+                    }
+                } else if (curTool !== 'eraser') {
+                    drawCtx.globalCompositeOperation = 'source-over';
+                    drawCtx.drawImage(tempCanvas, 0, 0); tempCtx.clearRect(0,0,tempCanvas.width, tempCanvas.height);
+                    saveHistory();
+                } else {
+                    saveHistory();
+                }
+                activeLine = null; redraw();
+            }
+
+            if (draggingSticker) {
+                if (!stickerMoved) {
+                    const s = draggingSticker;
+                    const currentName = s.type === 'text-only' ? s.text : s.t;
+                    const newName = prompt("내용을 변경하세요:", currentName);
+                    if (newName !== null && newName.trim() !== "") {
+                        if (s.type === 'text-only') s.text = newName.trim(); else s.t = newName.trim();
+                    }
+                }
+                saveHistory(); draggingSticker = null; redraw();
+            }
+        };
+
+        cvs.addEventListener('pointerdown', pointerDown); cvs.addEventListener('pointermove', pointerMove); window.addEventListener('pointerup', pointerUp);
+
+        // 핀치 줌 로직
+        let initialPinchDist = null; let initialScale = 1;
+        cvs.addEventListener('touchstart', e => {
+            if(e.touches.length === 2) {
+                initialPinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                initialScale = scale;
+            }
+        });
+        cvs.addEventListener('touchmove', e => {
+            if(e.touches.length === 2 && initialPinchDist) {
+                e.preventDefault();
+                const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                const newScale = Math.min(Math.max(0.1, initialScale * (dist / initialPinchDist)), 5);
+                const cx = (e.touches[0].clientX + e.touches[1].clientX)/2 - cvs.getBoundingClientRect().left;
+                const cy = (e.touches[0].clientY + e.touches[1].clientY)/2 - cvs.getBoundingClientRect().top;
+                panX = cx - (cx - panX) * (newScale / scale); panY = cy - (cy - panY) * (newScale / scale);
+                scale = newScale; redraw();
+            }
+        }, {passive: false});
+        cvs.addEventListener('touchend', e => { if(e.touches.length < 2) initialPinchDist = null; });
+
+        function redraw() {
+            ctx.fillStyle = "#FFFFFF"; ctx.fillRect(0, 0, cvs.width, cvs.height);
+            let refImg = loadedLayers['base'] || Object.values(loadedLayers)[0];
+            if (!refImg || !refImg.naturalWidth) return;
+            const w = refImg.naturalWidth; const h = refImg.naturalHeight;
+
+            ctx.save(); ctx.translate(panX, panY); ctx.scale(scale, scale);
+            
+            const config = mapConfigs[document.getElementById('map-region').value];
+            const renderQueue = ['base', ...config.layers.map(l=>l.id)];
+            
+            renderQueue.forEach(key => {
+                if (loadedLayers[key] && loadedLayers[key].naturalWidth) {
+                    const chk = document.getElementById(`chk-${key}`);
+                    if (chk && chk.checked) {
+                        ctx.globalAlpha = parseFloat(document.getElementById(`op-${key}`).value);
+                        ctx.drawImage(loadedLayers[key], 0, 0, w, h);
+                    }
+                }
+            });
+            
+            ctx.globalAlpha = 1.0;
+            ctx.drawImage(drawCanvas, 0, 0, w, h);
+            ctx.drawImage(tempCanvas, 0, 0, w, h);
+
+            stickers.forEach((s, i) => {
+                const sx = s.realX; const sy = s.realY; 
+                const sScale = s.scale || 1; 
+
+                ctx.textAlign = "center"; ctx.textBaseline = "middle";
+                if (s.type === 'text-only') {
+                    ctx.font = `bold ${30 * sScale}px 'Jua'`; ctx.fillStyle = "#154360";
+                    ctx.strokeStyle = "rgba(255,255,255,0.95)"; ctx.lineWidth = 6 * sScale;
+                    ctx.strokeText(s.text, sx, sy); ctx.fillText(s.text, sx, sy);
+                } else {
+                    ctx.font = `${45 * sScale}px sans-serif`; ctx.fillText(s.e, sx, sy);
+                    if (s.t) {
+                        ctx.font = `bold ${18 * sScale}px 'Jua'`; ctx.fillStyle = "#2C3E50";
+                        ctx.strokeStyle = "white"; ctx.lineWidth = 5 * sScale;
+                        ctx.strokeText(s.t, sx, sy + (35 * sScale)); ctx.fillText(s.t, sx, sy + (35 * sScale));
+                    }
+                }
+
+                if (hoverIdx === i || draggingSticker === s) {
+                    ctx.fillStyle = "#E74C3C"; ctx.beginPath(); ctx.arc(sx+(22*sScale), sy-(22*sScale), 16*sScale, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = "white"; ctx.font = `bold ${16*sScale}px sans-serif`; ctx.fillText("X", sx+(22*sScale), sy-(21*sScale));
+                }
+            });
+            ctx.restore();
+        }
+
+        function handleAction(type) {
+            const tempHoverIdx = hoverIdx; const tempDragging = draggingSticker;
+            hoverIdx = -1; draggingSticker = null; redraw();
+
+            cvs.toBlob(blob => {
+                hoverIdx = tempHoverIdx; draggingSticker = tempDragging; redraw();
+                if (type === 'submit') {
+                    if (window.parent && window.parent.handleMapSave) {
+                        const reader = new FileReader(); reader.readAsDataURL(blob);
+                        reader.onloadend = function() { window.parent.handleMapSave(reader.result, "지도 겹치기"); }
+                    } else { alert("런처를 통해 접속해야 제출이 가능합니다."); }
+                } else if (type === 'download') {
+                    const mapName = document.getElementById('map-region').value;
+                    const url = URL.createObjectURL(blob); const a = document.createElement('a'); 
+                    a.href = url; a.download = `${mapName}_분석.jpg`; document.body.appendChild(a); a.click(); document.body.removeChild(a); 
+                }
+            }, 'image/jpeg', 0.95);
+        }
+
+        window.onload = () => { 
+            cvs.width = viewport.clientWidth; cvs.height = viewport.clientHeight; loadMap(); 
+        };
+    </script>
+</body>
+</html>
