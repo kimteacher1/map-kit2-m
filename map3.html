@@ -46,9 +46,9 @@
         /* 💡 시작 화면 (마법사 모드) */
         #welcome-screen { position: absolute; inset: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; z-index: 20; transition: opacity 0.3s; }
         .welcome-box { background: white; padding: 40px; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); max-width: 600px; width: 90%; }
-        .welcome-upload-btn { display: inline-block; padding: 15px 30px; font-size: 1.5rem; cursor: pointer; border-radius: 20px; background: var(--primary); color: white; border: none; font-family: 'Jua', sans-serif; transition: 0.2s; box-shadow: 0 4px 15px rgba(93,173,226,0.4); margin-top: 20px;}
+        .welcome-upload-btn { display: inline-block; padding: 15px 30px; font-size: 1.5rem; cursor: pointer; border-radius: 20px; background: var(--primary); color: white; border: none; font-family: 'Jua', sans-serif; transition: 0.2s; box-shadow: 0 4px 15px rgba(93,173,226,0.4); margin-top: 15px; margin-bottom: 20px;}
         .welcome-upload-btn:active { transform: scale(0.95); }
-        #upload-guide-msg { font-size: 1.5rem; color: #95A5A6; text-align: center; line-height: 1.6; margin-bottom: 20px;}
+        #upload-guide-msg { font-size: 1.5rem; color: #95A5A6; text-align: center; line-height: 1.6; margin-bottom: 0;}
 
         /* 💡 지도 뷰포트 및 캔버스 */
         #map-viewport { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 10; display: flex; }
@@ -141,7 +141,13 @@
                 <div class="welcome-box">
                     <div id="upload-guide-msg">
                         <span style="font-size: 3rem;">📷</span><br><br>
-                        <span style="font-size: 1.4rem; color: #4A4A4A; font-weight:bold;">지도 화면을 캡처한 이미지를 불러와 주세요.</span><br><br>
+                        <span style="font-size: 1.4rem; color: #4A4A4A; font-weight:bold;">지도 화면을 캡처한 이미지를 불러와 주세요.</span><br>
+                        
+                        <!-- 💡 수정: 사진 불러오기 버튼 위치 이동 -->
+                        <label class="welcome-upload-btn" for="map-upload">📂 사진 불러오기</label>
+                        <input type="file" id="map-upload" accept="image/*" onchange="handleImageUpload(event)" style="display:none;">
+                        <br>
+
                         <span style="font-size: 1.1rem; color: #BDC3C7;">──────────────────────</span><br><br>
                         <div style="text-align: left; font-size: 1.2rem; line-height: 1.8; display: inline-block; font-family: 'Jua', sans-serif; color: #4A4A4A;">
                             <span style="font-size: 1.4rem; color: var(--primary);">📖 백지도 메이커 사용 방법</span><br><br>
@@ -154,8 +160,6 @@
                             '지적편집도'로 캡처하면 가장 선명하고 깔끔한 백지도를 만들 수 있습니다.
                         </div>
                     </div>
-                    <label class="welcome-upload-btn" for="map-upload">📂 사진 불러오기</label>
-                    <input type="file" id="map-upload" accept="image/*" onchange="handleImageUpload(event)" style="display:none;">
                 </div>
             </div>
 
@@ -486,7 +490,8 @@
             if(pts.length === 1) { context.lineTo(pts[0].x + 0.1, pts[0].y); }
             else if (pts.length === 2) { context.lineTo(pts[1].x, pts[1].y); }
             else {
-                context.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
+                for (let i = 1; i < pts.length - 2; i++) { context.quadraticCurveTo(pts[i].x, pts[i].y, (pts[i].x + pts[i + 1].x)/2, (pts[i].y + pts[i + 1].y)/2); }
+                context.quadraticCurveTo(pts[pts.length - 2].x, pts[pts.length - 2].y, pts[pts.length - 1].x, pts[pts.length - 1].y);
             }
             context.lineCap = 'round'; context.lineJoin = 'round';
             
