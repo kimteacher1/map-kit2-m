@@ -19,20 +19,16 @@
         * { box-sizing: border-box; user-select: none; -webkit-touch-callout: none; }
         body { font-family: 'Jua', sans-serif; margin: 0; padding: 0; background: var(--bg); display: flex; flex-direction: column; height: 100dvh; overflow: hidden; color: var(--text); overscroll-behavior: none; }
 
-        header { background: var(--panel); padding: 8px 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: flex; align-items: center; z-index: 100; height: 60px; flex-shrink: 0; gap: 15px; overflow-x: auto; white-space: nowrap;}
-        header::-webkit-scrollbar { height: 6px; }
-        header::-webkit-scrollbar-thumb { background: #D5D8DC; border-radius: 10px; }
-
-        .era-group { display: flex; gap: 8px; align-items: center; flex: 1;}
-        .era-btn { padding: 8px 16px; font-size: 1.1rem; cursor: pointer; border-radius: 20px; background: #F0F3F4; color: #7F8C8D; border: 2px solid transparent; transition: 0.2s; font-family: 'Jua', sans-serif; white-space: nowrap; flex-shrink: 0; }
-        .era-btn.active { background: var(--primary); color: white; box-shadow: 0 4px 10px rgba(142, 68, 173, 0.4); border-color: #732D91; }
-
-        .action-group { display: flex; gap: 10px; align-items: center; border-left: 2px dashed #E5E7E9; padding-left: 15px;}
-        .btn-blind { padding: 8px 16px; font-size: 1.1rem; cursor: pointer; border-radius: 20px; background: #34495E; color: white; border: none; transition: 0.3s; font-family: 'Jua', sans-serif; white-space: nowrap; flex-shrink: 0; }
+        /* 💡 1, 5번 요구사항: 좌측 상단 플로팅 Back 버튼 및 단순화된 중앙 헤더 */
+        .btn-back-floating { position: absolute; left: 15px; top: 15px; background: #E74C3C; color: white; border: none; padding: 10px 18px; border-radius: 14px; font-family: 'Jua', sans-serif; font-size: 1.1rem; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.15); z-index: 200; transition: 0.2s;}
+        .btn-back-floating:hover { transform: translateY(-2px); background: #C0392B; }
+        
+        header { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.95); padding: 8px 15px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 10px; z-index: 100;}
+        select#era-select { font-family: 'Jua', sans-serif; font-size: 1.15rem; padding: 6px 12px; border-radius: 10px; border: 2px solid var(--primary); outline: none; color: var(--primary); font-weight: bold; background: #FDFDFD; cursor: pointer;}
+        .btn-blind { padding: 8px 15px; font-size: 1.05rem; cursor: pointer; border-radius: 12px; background: #34495E; color: white; border: none; transition: 0.3s; font-family: 'Jua', sans-serif; white-space: nowrap; }
         .btn-blind.active { background: #E74C3C; box-shadow: 0 4px 10px rgba(231, 76, 60, 0.4); }
-        .btn-back { padding: 8px 16px; font-size: 1.1rem; cursor: pointer; border-radius: 20px; background: #E74C3C; color: white; border: none; font-family: 'Jua', sans-serif; white-space: nowrap; flex-shrink: 0;}
 
-        main { display: flex; position: relative; width: 100vw; height: calc(100dvh - 60px); overflow: hidden; }
+        main { display: flex; position: relative; width: 100vw; height: 100dvh; overflow: hidden; }
         
         #map-viewport { flex: 1; position: relative; background: #FFFFFF; overflow: hidden; touch-action: none; }
         canvas { display: block; width: 100%; height: 100%; touch-action: none; }
@@ -108,14 +104,10 @@
 </head>
 <body>
 
+    <button class="btn-back-floating" onclick="if(window.parent && window.parent.closeApp) window.parent.closeApp(); else history.back();">🔙 메뉴로</button>
     <header>
-        <div class="era-group" id="era-buttons">
-            <!-- 자바스크립트로 자동 생성 -->
-        </div>
-        <div class="action-group">
-            <button class="btn-blind" id="btn-blind" onclick="toggleBlindMode()">👀 블라인드 퀴즈</button>
-            <button class="btn-back" onclick="if(window.parent && window.parent.closeApp) window.parent.closeApp(); else history.back();">🔙</button>
-        </div>
+        <select id="era-select" onchange="setEra(parseInt(this.value))"></select>
+        <button class="btn-blind" id="btn-blind" onclick="toggleBlindMode()">👀 블라인드 퀴즈</button>
     </header>
 
     <main>
@@ -124,9 +116,9 @@
             <canvas id="mapCanvas"></canvas>
             
             <div class="zoom-controls">
-                <button class="zoom-btn" onclick="zoom(1.2)">+</button>
+                <button class="zoom-btn" onclick="zoomView(1.2)">+</button>
                 <button class="zoom-btn zoom-btn-rect" onclick="resetZoom()">맞춤</button>
-                <button class="zoom-btn" onclick="zoom(0.8)">-</button>
+                <button class="zoom-btn" onclick="zoomView(0.8)">-</button>
             </div>
 
             <div class="action-controls">
@@ -183,6 +175,14 @@
                 </div>
 
                 <div class="tab-content" id="tab-sticker">
+                    
+                    <!-- 💡 3, 4번 요구사항: prompt 대체 패널 직접 입력창 -->
+                    <div style="display: flex; gap: 8px; margin-bottom: 10px; background: #FDFDFD; padding: 10px; border-radius: 14px; border: 1px solid var(--border); align-items: center;">
+                        <span style="font-size: 1.2rem;">🏷️</span>
+                        <input type="text" id="custom-sticker-text" placeholder="이름/사건 직접 입력" style="flex: 1; border: none; border-bottom: 2px solid var(--primary); outline: none; font-family: 'Jua', sans-serif; font-size: 1.1rem; background: transparent; color: var(--text);">
+                        <button class="tool-btn" style="background: var(--primary); color: white; border: none; padding: 8px 15px; font-size: 1rem; box-shadow: 0 2px 5px rgba(0,0,0,0.1);" onclick="applyStickerText()">추가/변경</button>
+                    </div>
+
                     <div class="slider-container" style="background: #E8F8F5; border-color: var(--primary);">
                         <label style="color: var(--primary-hover);">개별 크기</label>
                         <input type="range" id="sticker-size-slider" min="0.5" max="3" step="0.1" value="1" oninput="updateStickerSize(this.value)">
@@ -240,21 +240,19 @@
             { e: "🛡️", t: "군사시설" }, { e: "🏰", t: "성/도읍" }, { e: "🧱", t: "장성" }, { e: "⛰️", t: "산성" }
         ];
 
-        // 캔버스 및 렌더링 최적화 엔진 (map2)
+        // 엔진 변수 세팅
         const cvs = document.getElementById('mapCanvas');
         const ctx = cvs.getContext('2d');
         const msg = document.getElementById('loading-msg'); 
         const viewport = document.getElementById('map-viewport');
+        const stickerSlider = document.getElementById('sticker-size-slider');
         
         let drawCanvas = document.createElement('canvas'); let drawCtx = drawCanvas.getContext('2d');
         let tempCanvas = document.createElement('canvas'); let tempCtx = tempCanvas.getContext('2d');
 
         let historyStack = []; let stickerHistoryStack = []; let historyStep = -1;
-        
-        // 화살표 조절점 및 상태
         let activeCurve = null; let draggedPoint = null; 
 
-        // 데이터 및 뷰 상태
         let currentEra = null;
         let loadedLayers = {};
         let layerStates = [];
@@ -280,30 +278,14 @@
             }
         }
 
-        function updateStickerSize(val) {
-            if (draggingSticker) { draggingSticker.scale = parseFloat(val); scheduleRedraw(); }
-        }
-
-        // 초기 UI 빌드
+        // --- 초기화 및 데이터 로드 ---
         function initUI() {
-            const eraGroup = document.getElementById('era-buttons');
+            const eraSelect = document.getElementById('era-select');
             historyConfig.forEach(era => {
-                const btn = document.createElement('button');
-                btn.className = 'era-btn'; btn.id = `era-btn-${era.id}`;
-                btn.innerText = era.name;
-                btn.onclick = () => setEra(era.id);
-                eraGroup.appendChild(btn);
+                eraSelect.add(new Option(era.name, era.id));
             });
 
             const stickerBox = document.getElementById('sticker-container');
-            
-            const customDiv = document.createElement('div'); 
-            customDiv.className = 'sticker-item'; customDiv.style.gridColumn = 'span 4';
-            customDiv.style.background = '#F4ECF7'; customDiv.style.color = '#8E44AD'; customDiv.style.fontWeight = 'bold';
-            customDiv.innerHTML = '✍️ 직접 글씨/사건 입력하기';
-            customDiv.onclick = () => { setTool('custom-text'); curIcon = null; document.querySelectorAll('.sticker-item').forEach(el => el.classList.remove('selected')); customDiv.classList.add('selected'); };
-            stickerBox.appendChild(customDiv);
-
             iconPack.forEach(i => {
                 const d = document.createElement('div'); d.className = 'sticker-item';
                 d.innerHTML = `<div class="sticker-emoji">${i.e}</div><div>${i.t}</div>`;
@@ -318,13 +300,17 @@
             if(historyConfig.length > 0) setEra(historyConfig[0].id); 
         };
 
-        // 시대 설정 및 맵 데이터 로드
+        // 💡 4번 요구사항: 시대 변경 시 확인창 안전장치
         function setEra(id) {
+            if (historyStep > -1 && !confirm('시대를 변경하면 현재 작성 중인 내용이 모두 초기화됩니다. 계속하시겠습니까?')) {
+                document.getElementById('era-select').value = currentEra ? currentEra.id : historyConfig[0].id;
+                return;
+            }
+
             const era = historyConfig.find(e => e.id === id);
             if(!era) return;
             
-            document.querySelectorAll('.era-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(`era-btn-${id}`).classList.add('active');
+            document.getElementById('era-select').value = id;
 
             if(!currentEra || currentEra.base !== era.base) {
                 stickers = [];
@@ -397,6 +383,43 @@
         }
         function toggleBlindMode() { isBlindMode = !isBlindMode; document.getElementById('btn-blind').classList.toggle('active', isBlindMode); scheduleRedraw(); }
 
+        // --- 스티커 패널 및 툴 컨트롤 ---
+        function applyStickerText() {
+            const txt = document.getElementById('custom-sticker-text').value.trim();
+            if(txt === '') return;
+            
+            if (draggingSticker || hoverIdx !== -1) {
+                const target = draggingSticker || stickers[hoverIdx];
+                if (target.type === 'text-only') target.text = txt; else target.t = txt;
+                saveHistory(); scheduleRedraw();
+            } else {
+                curIcon = { type: 'text-only', text: txt };
+                setTool('icon');
+                document.querySelectorAll('.sticker-item').forEach(b => b.classList.remove('selected'));
+                document.getElementById('custom-sticker-text').blur();
+            }
+        }
+
+        function updateStickerSize(val) {
+            if (draggingSticker) { draggingSticker.scale = parseFloat(val); scheduleRedraw(); }
+        }
+
+        function setTool(t) {
+            if(activeCurve) burnActiveCurve(); 
+            curTool = t; 
+            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('selected'));
+            if(document.getElementById('tool-' + t)) document.getElementById('tool-' + t).classList.add('selected');
+            if(t !== 'icon' && t !== 'custom-text') {
+                document.querySelectorAll('.sticker-item').forEach(b => b.classList.remove('selected'));
+                curIcon = null;
+            }
+            document.getElementById('custom-sticker-text').value = '';
+            cvs.style.cursor = (t === 'pan') ? 'grab' : 'crosshair'; scheduleRedraw();
+        }
+
+        function setColor(color, btn) { curColor = color; document.querySelectorAll('.color-preset').forEach(b => b.classList.remove('active')); if(btn) btn.classList.add('active'); }
+        function clearDrawings() { if(confirm("그린 펜 자국과 스티커를 싹 지울까요? (지도는 유지됩니다)")) { stickers = []; activeCurve = null; drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height); saveHistory(); scheduleRedraw(); } }
+
         // --- Undo / Redo 기능 ---
         function saveHistory() {
             historyStep++; historyStack = historyStack.slice(0, historyStep); stickerHistoryStack = stickerHistoryStack.slice(0, historyStep);
@@ -426,26 +449,14 @@
             document.getElementById('btn-redo').style.opacity = historyStep < historyStack.length - 1 ? "1" : "0.4";
         }
 
-        function setTool(t) {
-            if(activeCurve) burnActiveCurve(); 
-            curTool = t; 
-            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('selected'));
-            if(document.getElementById('tool-' + t)) document.getElementById('tool-' + t).classList.add('selected');
-            if(t !== 'icon' && t !== 'custom-text') {
-                document.querySelectorAll('.sticker-item').forEach(b => b.classList.remove('selected'));
-                curIcon = null;
-            }
-            cvs.style.cursor = (t === 'pan') ? 'grab' : 'crosshair'; scheduleRedraw();
-        }
-
-        function setColor(color, btn) { curColor = color; document.querySelectorAll('.color-preset').forEach(b => b.classList.remove('active')); if(btn) btn.classList.add('active'); }
-        function clearDrawings() { if(confirm("그린 펜 자국과 스티커를 싹 지울까요? (지도는 유지됩니다)")) { stickers = []; activeCurve = null; drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height); saveHistory(); scheduleRedraw(); } }
-
-        function zoom(factor) {
+        // --- 💡 6번 요구사항: 줌/팬 (마우스 위치 기준 확대) ---
+        function zoomView(factor) {
             const newScale = Math.min(Math.max(0.1, scale * factor), 5);
             const cx = cvs.width / 2; const cy = cvs.height / 2;
-            panX = cx - (cx - panX) * (newScale / scale); panY = cy - (cy - panY) * (newScale / scale); scale = newScale; scheduleRedraw();
+            panX = cx - (cx - panX) * (newScale / scale); panY = cy - (cy - panY) * (newScale / scale); 
+            scale = newScale; scheduleRedraw();
         }
+        
         function resetZoom() {
             scale = Math.min(cvs.width / baseImgW, cvs.height / baseImgH) * 0.95;
             panX = (cvs.width - baseImgW * scale) / 2; panY = (cvs.height - baseImgH * scale) / 2; scheduleRedraw();
@@ -459,7 +470,19 @@
             scheduleRedraw(); 
         });
 
-        // --- 그리기 및 화살표 조절점 로직 (map2 템플릿 유지) ---
+        // 마우스 휠 줌 (손가락 위치 기준)
+        cvs.addEventListener('wheel', e => {
+            e.preventDefault();
+            const factor = e.deltaY < 0 ? 1.1 : 0.9;
+            const rect = cvs.getBoundingClientRect();
+            const mx = e.clientX - rect.left; const my = e.clientY - rect.top;
+            
+            const newScale = Math.min(Math.max(0.1, scale * factor), 5);
+            panX = mx - (mx - panX) * (newScale / scale); panY = my - (my - panY) * (newScale / scale);
+            scale = newScale; scheduleRedraw();
+        }, {passive: false});
+
+        // --- 그리기 로직 ---
         function drawSmoothLine(context, pts, type, color, w, controlP1 = null) {
             if (pts.length === 0) return;
             context.beginPath(); context.moveTo(pts[0].x, pts[0].y);
@@ -503,42 +526,61 @@
             activeCurve = null; tempCtx.clearRect(0,0,baseImgW, baseImgH); saveHistory();
         }
 
-        const pointerDown = (e) => {
-            if(e.pointerType === 'touch' && !e.isPrimary) return;
-            const mx = (e.clientX || e.touches[0].clientX) - cvs.getBoundingClientRect().left;
-            const my = (e.clientY || e.touches[0].clientY) - cvs.getBoundingClientRect().top;
-            const rx = (mx - panX) / scale; const ry = (my - panY) / scale; const p = {x: rx, y: ry};
-            const currentGlobalScale = parseFloat(document.getElementById('sticker-size-slider').value) || 1;
-
-            for (let i = stickers.length - 1; i >= 0; i--) {
-                const s = stickers[i]; const sx = s.realX * scale + panX; const sy = s.realY * scale + panY; const sScale = s.scale || 1; 
-                if (hoverIdx === i && Math.hypot(mx - (sx + (18 * sScale * scale)), my - (sy - (18 * sScale * scale))) < 25) {
-                    stickers.splice(i, 1); hoverIdx = -1; saveHistory(); scheduleRedraw(); return; 
-                }
-            }
+        // --- 마우스 이벤트 맵핑 (Pointer Capture 적용) ---
+        cvs.addEventListener('pointerdown', e => {
+            if(e.pointerType === 'touch' && !e.isPrimary) return; 
+            cvs.setPointerCapture(e.pointerId); 
             
-            if (hoverIdx !== -1) { 
-                draggingSticker = stickers[hoverIdx]; stickerMoved = false; 
-                draggingSticker.downX = mx; draggingSticker.downY = my; 
-                document.getElementById('sticker-size-slider').value = draggingSticker.scale || 1; return; 
+            const rect = cvs.getBoundingClientRect(); const clkX = e.clientX - rect.left; const clkY = e.clientY - rect.top;
+            const rx = (clkX - panX) / scale; const ry = (clkY - panY) / scale; const p = {x: rx, y: ry};
+            const currentGlobalScale = parseFloat(stickerSlider.value) || 1;
+
+            if (curTool === 'pan') { isDraggingMap = true; startX = clkX - panX; startY = clkY - panY; return; }
+
+            // 💡 3번 요구사항: 스티커 선택 및 삭제 영역 안정화
+            let clickedSticker = -1;
+            for (let i = stickers.length - 1; i >= 0; i--) {
+                const sx = stickers[i].realX * scale + panX; const sy = stickers[i].realY * scale + panY; const sScale = stickers[i].scale || 1; 
+                
+                // 삭제 버튼 범위 (기존처럼)
+                if (hoverIdx === i && Math.hypot(clkX - (sx+(22*sScale*scale)), clkY - (sy-(22*sScale*scale))) < (25*sScale*scale)) {
+                    stickers.splice(i, 1); hoverIdx = -1; 
+                    document.getElementById('custom-sticker-text').value = '';
+                    saveHistory(); scheduleRedraw(); return; 
+                }
+                if (Math.hypot(clkX - sx, clkY - sy) < (35*sScale*scale)) { clickedSticker = i; break; }
             }
 
-            if (curTool === 'pan') { isDraggingMap = true; startX = mx - panX; startY = my - panY; return; } 
+            if(clickedSticker !== -1) {
+                hoverIdx = clickedSticker; 
+                draggingSticker = stickers[hoverIdx]; stickerMoved = false; 
+                draggingSticker.downX = clkX; draggingSticker.downY = clkY; 
+                stickerSlider.value = draggingSticker.scale || 1; 
+                
+                // 💡 텍스트 입력창 동기화 (Prompt 대체)
+                const st = draggingSticker.type === 'text-only' ? draggingSticker.text : (draggingSticker.t || '');
+                document.getElementById('custom-sticker-text').value = st;
+                
+                scheduleRedraw(); return; 
+            } else { hoverIdx = -1; document.getElementById('custom-sticker-text').value = ''; }
             
             if (curTool === 'icon' && curIcon) { 
-                if (curIcon.e === '🏷️') {
-                    const txt = prompt("지도에 표시할 글씨나 사건을 입력하세요:"); 
-                    if (txt && txt.trim() !== '') { stickers.push({ type: 'text-only', text: txt.trim(), realX: rx, realY: ry, scale: currentGlobalScale }); saveHistory(); }
+                if (curIcon.type === 'text-only') {
+                    stickers.push({ type: 'text-only', text: curIcon.text, realX: rx, realY: ry, scale: currentGlobalScale }); 
+                } else if (curIcon.e === '🏷️') {
+                    // Fallback
                 } else {
                     stickers.push({ type: 'icon', e: curIcon.e, t: curIcon.t, realX: rx, realY: ry, scale: currentGlobalScale }); 
                     if (curIcon.e === '📍') stickers.push({ type: 'bubble', e: '💬', t: '사건 내용', realX: rx + 60, realY: ry - 30, scale: currentGlobalScale });
-                    saveHistory(); 
                 }
-                setTool('pan'); scheduleRedraw(); return; 
-            } else if (curTool === 'custom-text') { 
-                const txt = prompt("지도에 표시할 글씨를 직접 입력하세요:"); 
-                if (txt && txt.trim() !== '') { stickers.push({ type: 'text-only', text: txt.trim(), realX: rx, realY: ry, scale: currentGlobalScale }); saveHistory(); }
-                setTool('pan'); scheduleRedraw(); return; 
+                hoverIdx = stickers.length - 1; 
+                draggingSticker = stickers[hoverIdx];
+                stickerMoved = true;
+                saveHistory(); 
+
+                // 💡 스티커 붙인 직후 자동 이동 모드 전환
+                setTool('pan');
+                scheduleRedraw(); return; 
             }
 
             if (['arrow-curve', 'arrow-straight'].includes(curTool)) {
@@ -550,36 +592,31 @@
                     else { burnActiveCurve(); startNewCurve(p, curTool); } 
                 } else { startNewCurve(p, curTool); }
                 return;
-            } else if (['free', 'eraser'].includes(curTool)) {
+            } 
+            
+            else if (['free', 'eraser'].includes(curTool)) {
                 if (activeCurve) burnActiveCurve(); 
                 isDrawing = true; activeLine = { type: curTool, color: curColor, pts: [p] };
                 if(curTool === 'eraser') { const w = parseFloat(document.getElementById('line-width-slider').value); drawCtx.globalCompositeOperation = 'destination-out'; drawSmoothLine(drawCtx, [p, p], 'eraser', null, w); drawCtx.globalCompositeOperation = 'source-over'; scheduleRedraw(); }
             }
-        };
+        });
 
         function startNewCurve(p, type) {
             activeCurve = { type: type, color: curColor, w: parseFloat(document.getElementById('line-width-slider').value), p0: {x: p.x, y: p.y}, p2: {x: p.x, y: p.y}, p1: type === 'arrow-curve' ? {x: p.x, y: p.y} : null };
             draggedPoint = 'p2'; scheduleRedraw();
         }
 
-        const pointerMove = (e) => {
-            const mx = (e.clientX || e.touches[0].clientX) - cvs.getBoundingClientRect().left;
-            const my = (e.clientY || e.touches[0].clientY) - cvs.getBoundingClientRect().top;
+        cvs.addEventListener('pointermove', e => {
+            const mx = e.clientX - cvs.getBoundingClientRect().left; const my = e.clientY - cvs.getBoundingClientRect().top;
             const rx = (mx - panX) / scale; const ry = (my - panY) / scale; const p = {x: rx, y: ry};
 
-            if (draggingSticker) { 
+            if (draggingSticker && curTool !== 'pan' && !isDraggingMap) { 
                 e.preventDefault(); 
+                // 💡 드래그 임계치 적용 (5px 이상 이동해야 드래그로 판정)
                 if (!stickerMoved) { if (Math.hypot(mx - draggingSticker.downX, my - draggingSticker.downY) > 5) stickerMoved = true; }
                 if (stickerMoved) { draggingSticker.realX = rx; draggingSticker.realY = ry; }
                 scheduleRedraw(); return; 
             }
-
-            let found = -1;
-            for (let i = stickers.length - 1; i >= 0; i--) {
-                const sx = stickers[i].realX * scale + panX; const sy = stickers[i].realY * scale + panY; const sScale = stickers[i].scale || 1;
-                if (Math.hypot(mx - sx, my - sy) < (35 * sScale * scale)) { found = i; break; }
-            }
-            if (hoverIdx !== found) { hoverIdx = found; scheduleRedraw(); }
 
             if (isDraggingMap && curTool === 'pan') { e.preventDefault(); panX = mx - startX; panY = my - startY; scheduleRedraw(); return; }
 
@@ -597,10 +634,12 @@
                 else { tempCtx.clearRect(0,0,baseImgW, baseImgH); drawSmoothLine(tempCtx, activeLine.pts, curTool, curColor, w); }
                 scheduleRedraw(); 
             }
-        };
+        });
 
-        const pointerUp = () => { 
-            if (isDraggingMap) isDraggingMap = false; 
+        cvs.addEventListener('pointerup', e => {
+            cvs.releasePointerCapture(e.pointerId);
+            
+            if (isDraggingMap) { isDraggingMap = false; }
             if (activeCurve && draggedPoint) { draggedPoint = null; scheduleRedraw(); return; } 
             
             if (isDrawing && activeLine) {
@@ -611,22 +650,16 @@
             }
 
             if (draggingSticker) {
-                if (!stickerMoved) {
-                    const s = draggingSticker; const currentName = s.type === 'text-only' ? s.text : s.t; const newName = prompt("내용을 변경하세요:", currentName);
-                    if (newName !== null && newName.trim() !== "") { if (s.type === 'text-only') s.text = newName.trim(); else s.t = newName.trim(); }
-                }
                 saveHistory(); draggingSticker = null; scheduleRedraw();
             }
-        };
+        });
 
-        // window 전역 이벤트로 캔버스 밖 이탈 드래그 튕김 방지 유지 (GPT 제안 수용)
-        cvs.addEventListener('pointerdown', pointerDown); 
-        window.addEventListener('pointermove', pointerMove); 
-        window.addEventListener('pointerup', pointerUp);
-        cvs.addEventListener('touchstart', e => { if(curTool==='pan' || hoverIdx !== -1) e.preventDefault(); }, {passive: false});
-        cvs.addEventListener('touchmove', e => { if(isDraggingMap || draggingSticker || isDrawing || activeCurve) e.preventDefault(); }, {passive: false});
-
-        cvs.addEventListener('touchstart', e => { if(e.touches.length === 2) { initialPinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); initialScale = scale; }});
+        cvs.addEventListener('touchstart', e => {
+            if(e.touches.length === 2) {
+                initialPinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                initialScale = scale;
+            }
+        });
         cvs.addEventListener('touchmove', e => {
             if(e.touches.length === 2 && initialPinchDist) {
                 e.preventDefault();
@@ -639,7 +672,7 @@
         }, {passive: false});
         cvs.addEventListener('touchend', e => { if(e.touches.length < 2) initialPinchDist = null; });
 
-        // 분리된 순수 렌더링 함수
+        // --- 순수 렌더링 함수 ---
         function redraw() {
             ctx.fillStyle = "#FFFFFF"; ctx.fillRect(0, 0, cvs.width, cvs.height);
             ctx.save(); ctx.translate(panX, panY); ctx.scale(scale, scale);
@@ -690,9 +723,11 @@
             }
         }
 
+        // 💡 1번 요구사항: 이름표 확대 시 렌더링 증발 버그 픽스 (sx, sy 사용 보장)
         function drawStickers() {
             stickers.forEach((s, i) => {
                 const sx = s.realX; const sy = s.realY; const sScale = s.scale || 1; 
+
                 ctx.textAlign = "center"; ctx.textBaseline = "middle";
                 if (s.type === 'text-only') {
                     ctx.font = `bold ${30 * sScale}px 'Jua'`; ctx.fillStyle = "#154360"; ctx.strokeStyle = "rgba(255,255,255,0.95)"; ctx.lineWidth = 6 * sScale;
@@ -715,33 +750,24 @@
             });
         }
 
-        // GPT가 제안한 캡처 안전장치(try-finally 구조 응용)
         function handleAction(type) {
             if(activeCurve) burnActiveCurve(); 
-            
-            // 기존 상태 안전하게 보관 (try-finally 개념)
+            const tempHoverIdx = hoverIdx; const tempDragging = draggingSticker; hoverIdx = -1; draggingSticker = null; 
             const tempScale = scale; const tempPanX = panX; const tempPanY = panY;
-            const tempHoverIdx = hoverIdx; const tempDragging = draggingSticker;
             
-            // 캡처를 위해 임시 UI 제거 및 전체 지도 배율로 초기화
-            hoverIdx = -1; draggingSticker = null; 
             scale = Math.min(cvs.width / baseImgW, cvs.height / baseImgH) * 0.95;
             panX = (cvs.width - baseImgW * scale) / 2;
             panY = (cvs.height - baseImgH * scale) / 2;
-            
-            redraw(); // 동기식 렌더링으로 캡처 준비 
+            redraw(); 
 
             cvs.toBlob(blob => {
-                // 비동기 캡처 완료 시 무조건 원래 화면으로 복구 보장
-                scale = tempScale; panX = tempPanX; panY = tempPanY;
                 hoverIdx = tempHoverIdx; draggingSticker = tempDragging; 
+                scale = tempScale; panX = tempPanX; panY = tempPanY;
                 scheduleRedraw();
-                
+
                 if (type === 'submit') {
-                    if (window.parent && window.parent.handleMapSave) {
-                        const reader = new FileReader(); reader.readAsDataURL(blob);
-                        reader.onloadend = function() { window.parent.handleMapSave(reader.result, "타임머신 역사 지도"); }
-                    } else { alert("런처를 통해 접속해야 제출이 가능합니다."); }
+                    if (window.parent && window.parent.handleMapSave) window.parent.handleMapSave(reader.result, "타임머신 역사 지도"); 
+                    else alert("런처를 통해 접속해야 제출이 가능합니다."); 
                 } else if (type === 'download') {
                     const eraName = currentEra ? currentEra.name : "역사지도";
                     const url = URL.createObjectURL(blob); const a = document.createElement('a'); 
