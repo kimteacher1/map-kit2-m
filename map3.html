@@ -20,7 +20,7 @@
         * { box-sizing: border-box; user-select: none; -webkit-touch-callout: none; }
         body { font-family: 'Jua', sans-serif; margin: 0; padding: 0; background: var(--bg); display: flex; flex-direction: column; height: 100dvh; overflow: hidden; color: var(--text); overscroll-behavior: none; }
 
-        /* --- 상단 플로팅 헤더 --- */
+        /* --- 상단 최소화 플로팅 헤더 --- */
         .btn-back-floating { position: absolute; left: 15px; top: 15px; background: #E74C3C; color: white; border: none; padding: 10px 18px; border-radius: 14px; font-family: 'Jua', sans-serif; font-size: 1.1rem; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.15); z-index: 200; transition: 0.2s;}
         .btn-back-floating:hover { transform: translateY(-2px); background: #C0392B; }
         
@@ -30,17 +30,10 @@
         /* --- 메인 작업 영역 --- */
         main { display: flex; position: relative; width: 100vw; height: 100dvh; overflow: hidden; }
         
-        #map-viewport { flex: 1; position: relative; background: #E5E8E8; overflow: hidden; touch-action: none; }
-        canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+        #map-viewport { flex: 1; position: relative; background: #E5E8E8; overflow: hidden; touch-action: none; display: none; }
+        canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
         
         #loading-msg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 1.5rem; font-weight: bold; color: var(--primary); background: rgba(255,255,255,0.95); padding: 20px 40px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; z-index: 200; border: 2px solid var(--primary); display: none;}
-
-        /* 💡 시작 화면 (마법사 모드를 뷰포트 안으로 이동) */
-        #welcome-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 150; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-        .welcome-box { background: white; padding: 40px; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); max-width: 600px; width: 90%; }
-        .welcome-upload-btn { display: inline-block; padding: 15px 30px; font-size: 1.5rem; cursor: pointer; border-radius: 20px; background: var(--primary); color: white; border: none; font-family: 'Jua', sans-serif; transition: 0.2s; box-shadow: 0 4px 15px rgba(93,173,226,0.4); margin-top: 20px;}
-        .welcome-upload-btn:active { transform: scale(0.95); }
-        #upload-guide-msg { font-size: 1.5rem; color: #95A5A6; text-align: center; line-height: 1.6; }
 
         .zoom-controls { position: absolute; bottom: 20px; left: 20px; display: flex; flex-direction: column; gap: 8px; z-index: 50; transition: bottom 0.3s; }
         .zoom-btn { background: white; border: 2px solid var(--border); border-radius: 50%; width: 50px; height: 50px; font-size: 1.5rem; cursor: pointer; font-family: 'Jua', sans-serif; font-weight: bold; color: var(--text); box-shadow: 0 4px 10px rgba(0,0,0,0.1);}
@@ -52,14 +45,21 @@
         .fab-submit:active { transform: scale(0.95); background: var(--primary-hover); }
         .fab-save { background: #95A5A6; width: 50px; height: 50px; border-radius: 50%; font-size: 1.4rem; }
 
-        /* --- 우측 도구 패널 --- */
-        aside { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: absolute; z-index: 100; box-shadow: 0 0 20px rgba(0,0,0,0.15); display: flex; flex-direction: column; }
-        .panel-toggle { position: absolute; background: var(--panel); box-shadow: 0 2px 10px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; cursor: pointer; font-family: 'Jua', sans-serif; color: var(--primary); font-size: 1.2rem; border: 1px solid #ddd; z-index: 101;}
+        /* 💡 수정: 우측 도구 패널 z-index 상향 조정 및 기본 노출 설정 */
+        aside { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: absolute; z-index: 200; box-shadow: 0 0 20px rgba(0,0,0,0.15); display: flex; flex-direction: column; }
+        .panel-toggle { position: absolute; background: var(--panel); box-shadow: 0 2px 10px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; cursor: pointer; font-family: 'Jua', sans-serif; color: var(--primary); font-size: 1.2rem; border: 1px solid #ddd; z-index: 201;}
         
         .panel-content { flex: 1; display: flex; flex-direction: column; padding: 15px; overflow: hidden; position: relative; }
         
         /* 💡 도구 비활성화 오버레이 */
         #panel-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.6); backdrop-filter: blur(3px); z-index: 10; display: flex; align-items: center; justify-content: center; text-align: center; }
+
+        /* 💡 시작 화면 영역 분리 (패널 뒤로 밀리지 않도록 공간 확보) */
+        #welcome-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 150; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        .welcome-box { background: white; padding: 40px; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); max-width: 600px; width: 90%; }
+        .welcome-upload-btn { display: inline-block; padding: 15px 30px; font-size: 1.5rem; cursor: pointer; border-radius: 20px; background: var(--primary); color: white; border: none; font-family: 'Jua', sans-serif; transition: 0.2s; box-shadow: 0 4px 15px rgba(93,173,226,0.4); margin-top: 20px;}
+        .welcome-upload-btn:active { transform: scale(0.95); }
+        #upload-guide-msg { font-size: 1.5rem; color: #95A5A6; text-align: center; line-height: 1.6; }
 
         .ptab-menu { display: flex; gap: 5px; background: #F0F3F4; padding: 6px; border-radius: 14px; margin-bottom: 15px; flex-shrink: 0;}
         .ptab-btn { flex: 1; padding: 10px; border: none; background: transparent; font-family: 'Jua', sans-serif; font-size: 1.15rem; border-radius: 10px; color: #7F8C8D; cursor: pointer; transition: 0.2s; white-space: nowrap;}
@@ -73,6 +73,7 @@
             aside.open { transform: translateX(0); }
             .panel-toggle { left: -45px; top: 50%; transform: translateY(-50%); width: 45px; height: 110px; border-radius: 16px 0 0 16px; border-right: none; writing-mode: vertical-rl; text-orientation: mixed; letter-spacing: 2px;}
             body.panel-open .action-controls { right: calc(340px + 20px); }
+            #welcome-screen { width: calc(100% - 340px); } /* 💡 패널 영역만큼 줄임 */
         }
 
         @media (orientation: portrait) {
@@ -80,11 +81,12 @@
             aside.open { transform: translateY(0); }
             .panel-toggle { top: -45px; left: 50%; transform: translateX(-50%); width: 130px; height: 45px; border-radius: 16px 16px 0 0; border-bottom: none;}
             body.panel-open .action-controls, body.panel-open .zoom-controls { bottom: calc(45vh + 20px); }
+            #welcome-screen { height: calc(100% - 45vh); } /* 💡 패널 영역만큼 줄임 */
         }
 
         .btn-grid { display: grid; gap: 8px; }
-        .grid-3 { grid-template-columns: repeat(3, 1fr); }
         .grid-2 { grid-template-columns: repeat(2, 1fr); }
+        .grid-3 { grid-template-columns: repeat(3, 1fr); }
         
         .tool-btn { padding: 14px 5px; border: 2px solid var(--border); border-radius: 14px; background: white; cursor: pointer; font-size: 1.1rem; font-family: 'Jua', sans-serif; color: var(--text); display: flex; justify-content: center; align-items: center; text-align: center; transition: 0.2s;}
         .tool-btn.selected { border-color: var(--primary); background: #EBF5FB; color: var(--primary-hover); transform: translateY(-2px); box-shadow: 0 4px 10px rgba(93,173,226,0.2);}
@@ -105,36 +107,35 @@
     <button class="btn-back-floating" onclick="if(window.parent && window.parent.closeApp) window.parent.closeApp(); else history.back();">🔙 메뉴로</button>
     <button class="btn-back-floating" id="main-back-btn" style="display:none; left: 130px; background: #95A5A6;" onclick="location.reload();">🔄 다시 올리기</button>
     
-    <header id="main-header">
+    <header id="main-header" style="display:none;">
         <h1>🗺️ 스크린샷 백지도 메이커</h1>
     </header>
 
     <main>
-        <div id="map-viewport">
-            
-            <!-- 1단계: 사진 선택 마법사 -->
-            <div id="welcome-screen">
-                <div class="welcome-box">
-                    <div id="upload-guide-msg" style="margin-bottom: 20px;">
-                        <span style="font-size: 3rem;">📷</span><br><br>
-                        <span style="font-size: 1.4rem; color: #4A4A4A; font-weight:bold;">지도 화면을 캡처한 이미지를 불러와 주세요.</span><br><br>
-                        <span style="font-size: 1.1rem; color: #BDC3C7;">──────────────────────</span><br><br>
-                        <div style="text-align: left; font-size: 1.2rem; line-height: 1.8; display: inline-block; font-family: 'Jua', sans-serif; color: #4A4A4A;">
-                            <span style="font-size: 1.4rem; color: var(--primary);">📖 백지도 메이커 사용 방법</span><br><br>
-                            ① 네이버 지도에서 원하는 지역을 검색합니다.<br>
-                            ② 지도 설정에서 '지적편집도'를 선택합니다.<br>
-                            ③ 원하는 범위를 화면에 맞춘 뒤 캡처합니다.<br>
-                            ④ 캡처한 이미지를 불러옵니다.<br>
-                            ⑤ 자동으로 백지도가 완성됩니다.<br><br>
-                            <span style="color: #D35400;">💡 TIP</span><br>
-                            '지적편집도'로 캡처하면 가장 선명하고 깔끔한 백지도를 만들 수 있습니다.
-                        </div>
+        <!-- 1단계: 사진 선택 마법사 -->
+        <div id="welcome-screen">
+            <div class="welcome-box">
+                <div id="upload-guide-msg" style="margin-bottom: 20px;">
+                    <span style="font-size: 3rem;">📷</span><br><br>
+                    <span style="font-size: 1.4rem; color: #4A4A4A; font-weight:bold;">지도 화면을 캡처한 이미지를 불러와 주세요.</span><br><br>
+                    <span style="font-size: 1.1rem; color: #BDC3C7;">──────────────────────</span><br><br>
+                    <div style="text-align: left; font-size: 1.2rem; line-height: 1.8; display: inline-block; font-family: 'Jua', sans-serif; color: #4A4A4A;">
+                        <span style="font-size: 1.4rem; color: var(--primary);">📖 백지도 메이커 사용 방법</span><br><br>
+                        ① 네이버 지도에서 원하는 지역을 검색합니다.<br>
+                        ② 지도 설정에서 '지적편집도'를 선택합니다.<br>
+                        ③ 원하는 범위를 화면에 맞춘 뒤 캡처합니다.<br>
+                        ④ 캡처한 이미지를 불러옵니다.<br>
+                        ⑤ 자동으로 백지도가 완성됩니다.<br><br>
+                        <span style="color: #D35400;">💡 TIP</span><br>
+                        '지적편집도'로 캡처하면 가장 선명하고 깔끔한 백지도를 만들 수 있습니다.
                     </div>
-                    <label class="welcome-upload-btn" for="map-upload">📂 사진 불러오기</label>
-                    <input type="file" id="map-upload" accept="image/*" onchange="handleImageUpload(event)" style="display:none;">
                 </div>
+                <label class="welcome-upload-btn" for="map-upload">📂 사진 불러오기</label>
+                <input type="file" id="map-upload" accept="image/*" onchange="handleImageUpload(event)" style="display:none;">
             </div>
+        </div>
 
+        <div id="map-viewport">
             <div id="loading-msg">지도를 깨끗하게 변환하는 중이에요! 🚀</div>
             <canvas id="mapCanvas"></canvas>
             
@@ -175,8 +176,10 @@
                     <div class="slider-container">
                         <div class="slider-header">
                             <span>🎚️ 외곽선 민감도</span>
+                            <!-- 💡 수정: 초기 설정 값 10 반영 -->
                             <span id="threshold-val" style="color:var(--primary);">10</span>
                         </div>
+                        <!-- 💡 수정: 범위 5 ~ 20으로 제한 -->
                         <input type="range" id="threshold-slider" min="5" max="20" step="1" value="10" oninput="updateFilter()">
                     </div>
 
@@ -191,7 +194,7 @@
 
                 <!-- 다듬기 탭 -->
                 <div class="tab-content" id="tab-edit">
-                    <!-- 💡 수정: btn-redo 버튼 복구로 오류 차단 -->
+                    <!-- 💡 수정: btn-redo 버튼 명확히 표시 -->
                     <div class="btn-grid grid-3">
                         <button class="tool-btn action-btn" onclick="undo()" id="btn-undo" style="opacity:0.4;">↩️ 취소</button>
                         <button class="tool-btn action-btn" onclick="redo()" id="btn-redo" style="opacity:0.4;">↪️ 복구</button>
@@ -277,6 +280,14 @@
             }
         }
 
+        window.onload = () => { 
+            cvs.width = viewport.clientWidth; cvs.height = viewport.clientHeight; 
+            window.addEventListener('resize', () => { updateToggleText(); resize(); });
+            
+            // 💡 시작 시 도구 패널을 보이도록 열어둡니다.
+            togglePanel();
+        };
+
         function handleImageUpload(e) {
             const file = e.target.files[0]; if(!file) return;
             
@@ -284,6 +295,8 @@
             document.getElementById('welcome-screen').style.display = 'none';
             document.getElementById('panel-overlay').style.display = 'none';
             document.getElementById('main-back-btn').style.display = 'block';
+            document.getElementById('main-header').style.display = 'flex';
+            viewport.style.display = 'block';
             msg.style.display = 'block';
             
             const reader = new FileReader();
@@ -311,7 +324,6 @@
                     saveHistory(); 
                     
                     resetZoomControl(); 
-                    window.addEventListener('resize', () => { updateToggleText(); resize(); });
                 };
                 imgElement.src = event.target.result;
             };
@@ -347,6 +359,7 @@
             updateFilter();
         }
 
+        // 💡 핵심 렌더링 필터: map3 오리지널 엔진
         function updateFilter() {
             if(!originalImgData) return;
             msg.style.display = 'block';
@@ -439,14 +452,14 @@
             return { x: (cx - rect.left - panX) / scale, y: (cy - rect.top - panY) / scale };
         }
 
+        // 지우개는 바탕(흰색)을 칠해 지우는 효과, 연필은 그리기
         function drawSmoothPath(context, pts, type, w) {
             if(pts.length === 0) return;
             context.beginPath(); context.moveTo(pts[0].x, pts[0].y);
             if(pts.length === 1) { context.lineTo(pts[0].x + 0.1, pts[0].y); }
             else if (pts.length === 2) { context.lineTo(pts[1].x, pts[1].y); }
             else {
-                for (let i = 1; i < pts.length - 2; i++) { context.quadraticCurveTo(pts[i].x, pts[i].y, (pts[i].x + pts[i + 1].x)/2, (pts[i].y + pts[i + 1].y)/2); }
-                context.quadraticCurveTo(pts[pts.length - 2].x, pts[pts.length - 2].y, pts[pts.length - 1].x, pts[pts.length - 1].y);
+                context.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
             }
             context.lineCap = 'round'; context.lineJoin = 'round';
             
