@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MAP LAB - 맵봇 챗봇 V2</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Jua&display=swap');
+        
+        :root {
+            --primary: #5DADE2;
+            --primary-hover: #3498DB;
+            --bg: #F4F6F7;
+            --chat-bg: #EBF5FB;
+            --text: #2C3E50;
+        }
+
+        * { box-sizing: border-box; }
+        
+        /* 💡 100dvh 적용 및 Visual Viewport 대비를 위한 Flex 구조 */
+        body { font-family: 'Jua', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; height: 100dvh; overflow: hidden; color: var(--text); }
+
+        /* --- 헤더 --- */
+        .chat-header {
+            background: rgba(255,255,255,0.95); padding: 12px 20px; display: flex; align-items: center; justify-content: space-between;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.05); z-index: 10; flex-shrink: 0;
+        }
+        .header-left, .header-right { display: flex; gap: 10px; width: 120px; }
+        .header-right { justify-content: flex-end; }
+        
+        .btn-outline { background: white; border: 2px solid #E5E7E9; border-radius: 12px; padding: 8px 12px; font-family: 'Jua', sans-serif; cursor: pointer; transition: 0.2s; white-space: nowrap;}
+        .btn-outline:hover { border-color: var(--primary); color: var(--primary); }
+        .btn-submit { background: var(--primary); color: white; border: none; border-radius: 12px; padding: 8px 12px; font-family: 'Jua', sans-serif; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 5px rgba(93,173,226,0.3); white-space: nowrap;}
+        .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(93, 173, 226, 0.5); }
+        .btn-danger { color: #E74C3C; border-color: #FADBD8; }
+        .btn-danger:hover { color: white; background: #E74C3C; border-color: #E74C3C;}
+
+        .chat-header h2 { margin: 0; flex: 1; text-align: center; font-size: 1.5rem; color: #2C3E50; white-space: nowrap;}
+
+        /* --- 채팅 영역 --- */
+        .chat-container { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--chat-bg); position: relative; }
+        
+        .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; scroll-behavior: smooth; padding-bottom: 30px;}
+        
+        .msg-wrap { display: flex; max-width: 85%; align-items: flex-start; position: relative; }
+        .msg-wrap.bot { align-self: flex-start; }
+        .msg-wrap.user { align-self: flex-end; flex-direction: row-reverse; }
+        
+        .bot-profile { width: 45px; height: 45px; background: white; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 1.8rem; margin: 0 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); flex-shrink: 0;}
+        
+        /* 💡 카드 형태의 말풍선 UI */
+        .msg-content { display: flex; flex-direction: column; gap: 8px; }
+        .msg-bubble {
+            padding: 15px 20px; border-radius: 20px; font-size: 1.15rem; line-height: 1.6; word-break: break-word;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05); font-family: sans-serif; color: #34495E;
+        }
+        .msg-wrap.bot .msg-bubble { background: #FFFFFF; border-top-left-radius: 4px; }
+        .msg-wrap.user .msg-bubble { background: #FEE500; border-top-right-radius: 4px; font-weight: bold; }
+        .msg-wrap.loading .msg-bubble { background: #E8F8F5; color: #16A085; font-style: italic; }
+        
+        /* 💡 액션 버튼 (지도 연동 및 메모) */
+        .msg-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 2px;}
+        .action-chip { background: white; border: 1px solid #D5D8DC; color: #7F8C8D; font-size: 0.95rem; padding: 6px 12px; border-radius: 12px; cursor: pointer; font-family: 'Jua', sans-serif; transition: 0.2s; display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.02);}
+        .action-chip:hover { background: #F4F6F7; border-color: #BDC3C7; color: #34495E;}
+        .action-chip.map-link { background: #EBF5FB; border-color: var(--primary); color: var(--primary-hover); font-weight: bold;}
+        .action-chip.map-link:hover { background: var(--primary); color: white; }
+
+        /* 💡 추천 질문 칩 */
+        .suggested-chips { display: flex; gap: 10px; overflow-x: auto; padding: 10px 0; margin-bottom: 10px; scrollbar-width: none; }
+        .suggested-chips::-webkit-scrollbar { display: none; }
+        .suggest-btn { flex-shrink: 0; background: white; border: 2px solid var(--primary); color: var(--primary-hover); border-radius: 20px; padding: 10px 18px; font-family: 'Jua', sans-serif; font-size: 1.1rem; cursor: pointer; box-shadow: 0 4px 10px rgba(93,173,226,0.15); transition: 0.2s;}
+        .suggest-btn:hover { background: var(--primary); color: white; transform: translateY(-2px);}
+
+        /* 💡 자동 확장 텍스트 영역 및 하단 고정 UI */
+        .chat-input-area { background: white; padding: 12px 15px; display: flex; align-items: flex-end; gap: 10px; flex-shrink: 0; border-top: 1px solid #E8E8E8; padding-bottom: env(safe-area-inset-bottom, 15px); box-shadow: 0 -2px 10px rgba(0,0,0,0.02);}
+        
+        .icon-btn { background: #F0F3F4; border: none; width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 1.4rem; cursor: pointer; flex-shrink: 0; transition: 0.2s;}
+        .icon-btn:hover { background: #E5E7E9; }
+        
+        #chat-input { flex: 1; padding: 12px 18px; border-radius: 20px; border: 2px solid #E5E7E9; font-size: 1.15rem; outline: none; font-family: sans-serif; resize: none; overflow-y: hidden; min-height: 50px; max-height: 120px; line-height: 1.4; background: #FDFDFD; transition: border-color 0.2s;}
+        #chat-input:focus { border-color: var(--primary); background: white;}
+        
+        #chat-send { background: var(--primary); color: white; border: none; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; font-size: 1.5rem; display: flex; justify-content: center; align-items: center; flex-shrink: 0; box-shadow: 0 4px 10px rgba(93,173,226,0.3); transition: 0.2s;}
+        #chat-send:active { transform: scale(0.95); }
+        #chat-send:disabled { background: #BDC3C7; box-shadow: none; cursor: not-allowed; }
+
+        /* 토스트 알림 */
+        #toast-msg { position: absolute; top: 80px; left: 50%; transform: translateX(-50%); font-size: 1.1rem; color: white; display: none; background: rgba(44, 62, 80, 0.85); padding: 10px 25px; border-radius: 20px; z-index: 1000; box-shadow: 0 4px 15px rgba(0,0,0,0.2);}
+    </style>
+</head>
+<body>
+
+    <div class="chat-header">
+        <div class="header-left">
+            <button class="btn-outline" onclick="if(window.parent && window.parent.closeApp) window.parent.closeApp(); else history.back();">◀ 메뉴로</button>
+            <button class="btn-outline btn-danger" onclick="newChat()">🗑 새 대화</button>
+        </div>
+        <h2>🤖 맵봇 (Map-Bot)</h2>
+        <div class="header-right">
+            <button class="btn-submit" onclick="submitChatLog()">📤 기록 제출</button>
+        </div>
+    </div>
+
+    <div class="chat-container">
+        <div id="toast-msg"></div>
+        
+        <div class="chat-messages" id="chat-box">
+            <!-- 💡 추천 질문 영역 -->
+            <div class="suggested-chips" id="suggested-chips">
+                <button class="suggest-btn" onclick="askPreset('🌏 우리나라의 영토는 어디까지야?')">🌏 우리나라 영토는?</button>
+                <button class="suggest-btn" onclick="askPreset('🗻 화산은 왜 생기는 거야?')">🗻 화산은 왜 생겨?</button>
+                <button class="suggest-btn" onclick="askPreset('🌦 기후에 따라 사람들의 생활 모습이 어떻게 달라져?')">🌦 기후와 생활 모습</button>
+                <button class="suggest-btn" onclick="askPreset('🇰🇷 우리나라에서 가장 높은 산은?')">🇰🇷 가장 높은 산은?</button>
+            </div>
+            <!-- 대화 내용이 들어가는 곳 -->
+        </div>
+
+        <div class="chat-input-area">
+            <button class="icon-btn" onclick="startSpeech()" title="음성 입력">🎤</button>
+            <textarea id="chat-input" rows="1" placeholder="사회 공부 중 궁금한 것을 물어보세요!"></textarea>
+            <button id="chat-send" onclick="sendChat()">➤</button>
+        </div>
+    </div>
+
+    <script>
+        let chatHistory = [];
+        let userName = "학생";
+
+        // 💡 1. 가상 키보드 완벽 대응 (Visual Viewport API)
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener("resize", () => {
+                document.body.style.height = window.visualViewport.height + "px";
+                window.scrollTo(0, 0);
+                const box = document.getElementById('chat-box');
+                box.scrollTop = box.scrollHeight;
+            });
+        }
+
+        // 💡 2. 자동 확장 입력창 (Textarea Auto-resize)
+        const chatInput = document.getElementById('chat-input');
+        chatInput.addEventListener('input', function() {
+            this.style.height = '50px'; // 기본 높이로 초기화 후 측정
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        });
+        chatInput.addEventListener('keydown', function(e) {
+            if(e.key === 'Enter' && !e.shiftKey) { 
+                e.preventDefault(); 
+                sendChat(); 
+            }
+        });
+
+        window.onload = () => {
+            const ui = sessionStorage.getItem('userInfo');
+            if(ui) userName = JSON.parse(ui).name;
+            
+            // 기존 데이터 복구 로직 (원본 유지)
+            const savedHistory = sessionStorage.getItem('mapbotHistory');
+            if (savedHistory) {
+                const parsed = JSON.parse(savedHistory);
+                if (parsed.length > 0) {
+                    document.getElementById('suggested-chips').style.display = 'none';
+                    parsed.forEach(msg => {
+                        if(msg.role === 'user') appendUserMsg(msg.text, false);
+                        else appendBotMsg(msg.text, false, false, true); // skipAnim = true
+                    });
+                    return;
+                }
+            }
+            
+            // 첫 접속 시 인사말
+            appendBotMsg(`안녕? ${userName}야. 만나서 반가워! 🤖\n나는 너의 사회 탐험을 도울 <b>맵봇(Map-Bot)</b>이야.\n사회 학습 중 어떤 것이 궁금해서 날 찾아왔니?`, false, true, false);
+        };
+
+        function saveHistory() {
+            sessionStorage.setItem('mapbotHistory', JSON.stringify(chatHistory));
+        }
+
+        // 💡 5. 새 대화 시작 기능
+        function newChat() {
+            if(confirm('새 대화를 시작할까요? 이전 대화는 모두 지워집니다.')) {
+                chatHistory = [];
+                sessionStorage.removeItem('mapbotHistory');
+                document.getElementById('chat-box').innerHTML = '';
+                
+                // 추천 질문 다시 표시
+                const chips = document.getElementById('suggested-chips');
+                document.getElementById('chat-box').appendChild(chips);
+                chips.style.display = 'flex';
+
+                appendBotMsg(`안녕? ${userName}야. 만나서 반가워! 🤖\n나는 너의 사회 탐험을 도울 <b>맵봇(Map-Bot)</b>이야.\n사회 학습 중 어떤 것이 궁금해서 날 찾아왔니?`, false, true, false);
+            }
+        }
+
+        // 추천 질문 클릭 시
+        function askPreset(text) {
+            chatInput.value = text;
+            chatInput.style.height = '50px'; // 높이 초기화
+            sendChat();
+        }
+
+        // 💡 6. 음성 입력 기능 (Web Speech API)
+        function startSpeech() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if(!SpeechRecognition) { alert('현재 브라우저에서는 음성 인식을 지원하지 않습니다. (크롬 권장)'); return; }
+            
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'ko-KR';
+            recognition.interimResults = false;
+            
+            const micBtn = document.querySelector('.icon-btn');
+            micBtn.style.background = '#FF9A9E';
+            micBtn.style.color = 'white';
+
+            recognition.start();
+
+            recognition.onresult = function(event) {
+                const text = event.results[0][0].transcript;
+                chatInput.value += (chatInput.value ? ' ' : '') + text;
+                chatInput.dispatchEvent(new Event('input')); // 자동 확장 트리거
+            };
+
+            recognition.onend = function() {
+                micBtn.style.background = '#F0F3F4';
+                micBtn.style.color = '';
+            };
+        }
+
+        // 토스트 메시지
+        function showToast(text) {
+            const toast = document.getElementById('toast-msg');
+            toast.innerText = text;
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 2000);
+        }
+
+        // 💡 8. 지도 연동 앱 호출
+        function openMapApp(appName) {
+            if(window.parent && window.parent.openApp) {
+                window.parent.openApp(appName);
+            } else {
+                location.href = appName;
+            }
+        }
+
+        function appendUserMsg(txt, save = true) {
+            if(save) chatHistory.push({ role: 'user', text: txt });
+            const box = document.getElementById('chat-box');
+            document.getElementById('suggested-chips').style.display = 'none'; // 질문을 시작하면 칩 숨김
+            
+            box.innerHTML += `<div class="msg-wrap user"><div class="msg-bubble">${txt.replace(/\n/g, '<br>')}</div></div>`;
+            box.scrollTop = box.scrollHeight;
+            if(save) saveHistory();
+        }
+
+        // 💡 4, 10. 답변 타이핑 애니메이션 및 카드형 구조화 (기록 보존 구조는 완벽 유지)
+        function appendBotMsg(txt, isTemp = false, save = true, skipAnim = false) {
+            if(!isTemp && save) chatHistory.push({ role: 'bot', text: txt });
+            const box = document.getElementById('chat-box');
+            
+            // 로딩 메시지
+            if (isTemp) {
+                box.innerHTML += `
+                    <div class="msg-wrap bot loading" id="loading-msg">
+                        <div class="bot-profile">🤖</div>
+                        <div class="msg-content">
+                            <div class="msg-bubble">맵봇이 열심히 생각하는 중이에요... 🔍</div>
+                        </div>
+                    </div>`;
+                box.scrollTop = box.scrollHeight;
+                return;
+            }
+
+            const cleanTxt = txt.replace(/\n/g, '<br>');
+            const wrapId = 'msg-' + Date.now() + Math.random().toString(36).substr(2, 5);
+            
+            // 💡 7. 액션 버튼 동적 렌더링
+            const actionButtons = `
+                <div class="msg-actions" style="display:none;">
+                    <button class="action-chip" onclick="showToast('⭐ 중요 표시가 저장되었습니다!')">⭐ 중요</button>
+                    <button class="action-chip" onclick="showToast('📌 나만의 배움공책에 메모되었습니다!')">📌 메모</button>
+                    <button class="action-chip map-link" onclick="openMapApp('map1.html')">🖍 MAP1에서 표시하기</button>
+                    <button class="action-chip map-link" onclick="openMapApp('map2.html')">🌍 MAP2 겹쳐보기</button>
+                </div>
+            `;
+
+            const html = `
+                <div class="msg-wrap bot" id="${wrapId}">
+                    <div class="bot-profile">🤖</div>
+                    <div class="msg-content">
+                        <div class="msg-bubble"><span class="typewriter-target"></span></div>
+                        ${actionButtons}
+                    </div>
+                </div>`;
+            box.insertAdjacentHTML('beforeend', html);
+            
+            const targetSpan = document.getElementById(wrapId).querySelector('.typewriter-target');
+            const actionsDiv = document.getElementById(wrapId).querySelector('.msg-actions');
+
+            if (skipAnim) {
+                // 저장된 기록을 불러올 때는 애니메이션 생략
+                targetSpan.innerHTML = cleanTxt;
+                actionsDiv.style.display = 'flex';
+                box.scrollTop = box.scrollHeight;
+            } else {
+                // 💡 한 글자씩 출력되는 타이핑 효과 (HTML 태그 깨짐 방지 처리 적용)
+                const tokens = [];
+                let tempStr = txt;
+                let match;
+                while((match = tempStr.match(/\n/))) {
+                    const before = tempStr.substring(0, match.index);
+                    if(before) tokens.push(...before.split(''));
+                    tokens.push('<br>');
+                    tempStr = tempStr.substring(match.index + 1);
+                }
+                if(tempStr) tokens.push(...tempStr.split(''));
+
+                let i = 0;
+                function type() {
+                    if (i < tokens.length) {
+                        targetSpan.innerHTML += tokens[i];
+                        i++;
+                        box.scrollTop = box.scrollHeight;
+                        setTimeout(type, 15); // 출력 속도 (15ms)
+                    } else {
+                        actionsDiv.style.display = 'flex';
+                        box.scrollTop = box.scrollHeight;
+                    }
+                }
+                type();
+            }
+            if(save) saveHistory();
+        }
+
+        // --- 원본 백엔드 API 연동 로직 (100% 보존) ---
+        async function sendChat() {
+            const inp = document.getElementById('chat-input');
+            const btn = document.getElementById('chat-send');
+            const txt = inp.value.trim();
+            if(!txt) return;
+
+            appendUserMsg(txt);
+            inp.value = '';
+            inp.style.height = '50px'; // 높이 초기화
+            
+            inp.disabled = true; btn.disabled = true;
+            appendBotMsg("", true, false); // 로딩 메시지
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: txt })
+                });
+
+                document.getElementById('loading-msg').remove();
+
+                const data = await response.json();
+                if(data.candidates && data.candidates.length > 0) {
+                    appendBotMsg(data.candidates[0].content.parts[0].text);
+                } else {
+                    appendBotMsg("앗, 응답을 받아오는데 문제가 생겼어. 잠시 후 다시 시도해줘!");
+                }
+            } catch (err) {
+                if(document.getElementById('loading-msg')) document.getElementById('loading-msg').remove();
+                appendBotMsg("서버와 통신할 수 없어. Vercel 배포 URL로 접속했는지 확인해줘!");
+                console.error(err);
+            } finally {
+                inp.disabled = false; btn.disabled = false; inp.focus();
+            }
+        }
+
+        function submitChatLog() {
+            if(chatHistory.length <= 1) {
+                alert("전송할 대화 내용이 없습니다."); return;
+            }
+            const chatLogString = chatHistory.map(c => `[${c.role === 'user' ? '나' : '맵봇'}]\n${c.text}`).join('\n\n-------------------\n\n');
+            if(window.parent && window.parent.handleMapSave) {
+                window.parent.handleMapSave("", "맵봇 챗봇", chatLogString);
+            }
+        }
+    </script>
+</body>
+</html>
