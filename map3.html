@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>&lt;MAP KIT&gt; 스크린샷 백지도 메이커 (태블릿 최적화)</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Jua&display=swap');
+        
+        :root {
+            --primary: #5DADE2;
+            --primary-hover: #3498DB;
+            --bg: #F4F6F7;
+            --panel: #FFFFFF;
+            --text: #2C3E50;
+            --border: #E8E8E8;
+            --radius-box: 20px;
+        }
+
+        * { box-sizing: border-box; user-select: none; -webkit-touch-callout: none; }
+        body { font-family: 'Jua', sans-serif; margin: 0; padding: 0; background: var(--bg); display: flex; flex-direction: column; height: 100dvh; overflow: hidden; color: var(--text); overscroll-behavior: none; }
+
+        /* 💡 시작 화면 (마법사 모드) */
+        #welcome-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        .welcome-box { background: white; padding: 40px; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); max-width: 600px; width: 90%; }
+        .welcome-upload-btn { display: inline-block; padding: 15px 30px; font-size: 1.5rem; cursor: pointer; border-radius: 20px; background: var(--primary); color: white; border: none; font-family: 'Jua', sans-serif; transition: 0.2s; box-shadow: 0 4px 15px rgba(93,173,226,0.4); margin-top: 20px;}
+        .welcome-upload-btn:active { transform: scale(0.95); }
+        
+        /* 기존 map3 스타일 복원 */
+        #upload-guide-msg { font-size: 1.5rem; color: #95A5A6; text-align: center; line-height: 1.6; }
+
+        /* --- 상단 최소화 플로팅 헤더 --- */
+        .btn-back-floating { position: absolute; left: 15px; top: 15px; background: #E74C3C; color: white; border: none; padding: 10px 18px; border-radius: 14px; font-family: 'Jua', sans-serif; font-size: 1.1rem; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.15); z-index: 200; transition: 0.2s;}
+        .btn-back-floating:hover { transform: translateY(-2px); background: #C0392B; }
+        
+        header { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.95); padding: 8px 25px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); display: flex; align-items: center; z-index: 100;}
+        header h1 { margin: 0; font-size: 1.3rem; color: var(--primary); white-space: nowrap; }
+
+        /* --- 메인 작업 영역 --- */
+        main { display: flex; position: relative; width: 100vw; height: 100dvh; overflow: hidden; }
+        
+        #map-viewport { flex: 1; position: relative; background: #E5E8E8; overflow: hidden; touch-action: none; display: none; }
+        canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+        
+        #loading-msg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 1.5rem; font-weight: bold; color: var(--primary); background: rgba(255,255,255,0.95); padding: 20px 40px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; z-index: 200; border: 2px solid var(--primary); display: none;}
+
+        .zoom-controls { position: absolute; bottom: 20px; left: 20px; display: flex; flex-direction: column; gap: 8px; z-index: 50; transition: bottom 0.3s; }
+        .zoom-btn { background: white; border: 2px solid var(--border); border-radius: 50%; width: 50px; height: 50px; font-size: 1.5rem; cursor: pointer; font-family: 'Jua', sans-serif; font-weight: bold; color: var(--text); box-shadow: 0 4px 10px rgba(0,0,0,0.1);}
+        .zoom-btn-rect { border-radius: 12px; width: 50px; height: 40px; font-size: 1rem;}
+
+        /* 파이프라인 FAB 버튼 */
+        .action-controls { position: absolute; bottom: 20px; right: 20px; display: flex; flex-direction: column; align-items: flex-end; gap: 15px; z-index: 50; transition: bottom 0.3s, right 0.3s; }
+        .fab-btn { border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.2); cursor: pointer; display: flex; justify-content: center; align-items: center; font-family: 'Jua', sans-serif; color: white; transition: 0.2s;}
+        .fab-submit { background: var(--primary); width: 80px; height: 80px; font-size: 1.1rem; border-radius: 25px; font-weight: bold; flex-direction: column; gap: 4px; box-shadow: 0 6px 20px rgba(93,173,226,0.5);}
+        .fab-submit:active { transform: scale(0.95); background: var(--primary-hover); }
+        .fab-save { background: #95A5A6; width: 50px; height: 50px; border-radius: 50%; font-size: 1.4rem; }
+
+        /* --- 우측 도구 패널 --- */
+        aside { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: absolute; z-index: 100; box-shadow: 0 0 20px rgba(0,0,0,0.15); display: flex; flex-direction: column; display: none; }
+        .panel-toggle { position: absolute; background: var(--panel); box-shadow: 0 2px 10px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; cursor: pointer; font-family: 'Jua', sans-serif; color: var(--primary); font-size: 1.2rem; border: 1px solid #ddd; z-index: 101;}
+        
+        .panel-content { flex: 1; display: flex; flex-direction: column; padding: 15px; overflow: hidden; }
+        
+        .ptab-menu { display: flex; gap: 5px; background: #F0F3F4; padding: 6px; border-radius: 14px; margin-bottom: 15px; flex-shrink: 0;}
+        .ptab-btn { flex: 1; padding: 10px; border: none; background: transparent; font-family: 'Jua', sans-serif; font-size: 1.15rem; border-radius: 10px; color: #7F8C8D; cursor: pointer; transition: 0.2s; white-space: nowrap;}
+        .ptab-btn.active { background: white; color: var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.05); font-weight: bold;}
+        
+        .tab-content { display: none; flex-direction: column; gap: 15px; flex: 1; overflow-y: auto; padding-right: 5px;}
+        .tab-content.active { display: flex; }
+
+        @media (orientation: landscape) {
+            aside { right: 0; top: 0; height: 100%; width: 340px; transform: translateX(340px); border-left: 1px solid #ddd; border-top-left-radius: 20px; border-bottom-left-radius: 20px;}
+            aside.open { transform: translateX(0); }
+            .panel-toggle { left: -45px; top: 50%; transform: translateY(-50%); width: 45px; height: 110px; border-radius: 16px 0 0 16px; border-right: none; writing-mode: vertical-rl; text-orientation: mixed; letter-spacing: 2px;}
+            body.panel-open .action-controls { right: calc(340px + 20px); }
+        }
+
+        @media (orientation: portrait) {
+            aside { bottom: 0; left: 0; width: 100%; height: 45vh; transform: translateY(45vh); border-top: 1px solid #ddd; border-top-left-radius: 24px; border-top-right-radius: 24px;}
+            aside.open { transform: translateY(0); }
+            .panel-toggle { top: -45px; left: 50%; transform: translateX(-50%); width: 130px; height: 45px; border-radius: 16px 16px 0 0; border-bottom: none;}
+            body.panel-open .action-controls, body.panel-open .zoom-controls { bottom: calc(45vh + 20px); }
+        }
+
+        .btn-grid { display: grid; gap: 8px; }
+        .grid-2 { grid-template-columns: repeat(2, 1fr); }
+        
+        .tool-btn { padding: 14px 5px; border: 2px solid var(--border); border-radius: 14px; background: white; cursor: pointer; font-size: 1.1rem; font-family: 'Jua', sans-serif; color: var(--text); display: flex; justify-content: center; align-items: center; text-align: center; transition: 0.2s;}
+        .tool-btn.selected { border-color: var(--primary); background: #EBF5FB; color: var(--primary-hover); transform: translateY(-2px); box-shadow: 0 4px 10px rgba(93,173,226,0.2);}
+        .action-btn { background: #F8F9F9; border-color: #D5D8DC; }
+        .btn-danger { color: #E74C3C; font-weight: bold; background: #FDEDEC; border-color: #F5B7B1;}
+
+        .slider-container { display: flex; flex-direction: column; gap: 8px; background: #F8F9F9; padding: 15px; border-radius: 14px; border: 1px solid var(--border);}
+        .slider-header { display: flex; justify-content: space-between; font-size: 1.1rem; color: var(--text); font-weight: bold;}
+        .slider-container input[type="range"] { width: 100%; accent-color: var(--primary); }
+        
+        .toggle-switch { display: flex; background: #F0F3F4; border-radius: 30px; padding: 4px; margin-top: 5px;}
+        .t-btn { flex: 1; text-align: center; padding: 8px 15px; font-size: 1rem; border-radius: 20px; color: #95A5A6; cursor: pointer; transition: 0.2s;}
+        .t-btn.active { background: var(--primary); color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1);}
+    </style>
+</head>
+<body>
+
+    <!-- 1단계: 사진 선택 마법사 -->
+    <div id="welcome-screen">
+        <button class="btn-back-floating" style="position: absolute; top:20px; left:20px;" onclick="if(window.parent && window.parent.closeApp) window.parent.closeApp(); else history.back();">🔙 메뉴로</button>
+        <div class="welcome-box">
+            
+            <!-- 💡 수정: 기존 map3의 시작 가이드 텍스트 복원 -->
+            <div id="upload-guide-msg" style="margin-bottom: 20px;">
+                <span style="font-size: 3rem;">📷</span><br><br>
+                <span style="font-size: 1.4rem; color: #4A4A4A; font-weight:bold;">지도 화면을 캡처한 이미지를 불러와 주세요.</span><br><br>
+                <span style="font-size: 1.1rem; color: #BDC3C7;">──────────────────────</span><br><br>
+                <div style="text-align: left; font-size: 1.2rem; line-height: 1.8; display: inline-block; font-family: 'Jua', sans-serif; color: #4A4A4A;">
+                    <span style="font-size: 1.4rem; color: var(--primary);">📖 백지도 메이커 사용 방법</span><br><br>
+                    ① 네이버 지도에서 원하는 지역을 검색합니다.<br>
+                    ② 지도 설정에서 '지적편집도'를 선택합니다.<br>
+                    ③ 원하는 범위를 화면에 맞춘 뒤 캡처합니다.<br>
+                    ④ 캡처한 이미지를 불러옵니다.<br>
+                    ⑤ 자동으로 백지도가 완성됩니다.<br><br>
+                    <span style="color: #D35400;">💡 TIP</span><br>
+                    '지적편집도'로 캡처하면 가장 선명하고 깔끔한 백지도를 만들 수 있습니다.
+                </div>
+            </div>
+
+            <label class="welcome-upload-btn" for="map-upload">📂 사진 불러오기</label>
+            <input type="file" id="map-upload" accept="image/*" onchange="handleImageUpload(event)" style="display:none;">
+        </div>
+    </div>
+
+    <!-- 2~3단계: 메인 편집기 -->
+    <button class="btn-back-floating" id="main-back-btn" style="display:none;" onclick="location.reload();">🔙 다시 올리기</button>
+    <header id="main-header" style="display:none;">
+        <h1>🗺️ 스크린샷 백지도 메이커</h1>
+    </header>
+
+    <main>
+        <div id="map-viewport">
+            <div id="loading-msg">지도를 깨끗하게 변환하는 중이에요! 🚀</div>
+            <canvas id="mapCanvas"></canvas>
+            
+            <div class="zoom-controls">
+                <button class="zoom-btn" onclick="zoomView(1.3)">+</button>
+                <button class="zoom-btn zoom-btn-rect" onclick="resetZoomControl()">맞춤</button>
+                <button class="zoom-btn" onclick="zoomView(0.7)">-</button>
+            </div>
+            
+            <div class="action-controls">
+                <button class="fab-btn fab-save" onclick="handleAction('download')" title="기기에 저장">📥</button>
+                <button class="fab-btn fab-submit" onclick="launchPipeline()"><span>🚀</span><span style="font-size: 0.9rem;">MAP1 전송</span></button>
+            </div>
+        </div>
+
+        <aside id="tool-panel">
+            <div class="panel-toggle" id="panel-toggle" onclick="togglePanel()">▲ 도구</div>
+            <div class="panel-content">
+                <div class="ptab-menu">
+                    <button class="ptab-btn active" id="btn-tab-extract" onclick="switchPanelTab('extract')">🎛️ 추출하기</button>
+                    <button class="ptab-btn" id="btn-tab-edit" onclick="switchPanelTab('edit')">✏️ 다듬기</button>
+                </div>
+
+                <!-- 추출 탭 -->
+                <div class="tab-content active" id="tab-extract">
+                    <div style="background: #EBF5FB; border-radius: 14px; padding: 15px; font-size: 1rem; line-height: 1.5; color: #2C3E50; text-align: center;">
+                        슬라이더를 움직여 지도의 테두리가<br>가장 선명하게 나오는 값을 찾으세요!
+                    </div>
+
+                    <div class="slider-container">
+                        <div class="slider-header">
+                            <span>🎚️ 외곽선 민감도</span>
+                            <!-- 💡 수정: 초기 설정 값 10 반영 -->
+                            <span id="threshold-val" style="color:var(--primary);">10</span>
+                        </div>
+                        <!-- 💡 수정: 범위 5 ~ 20으로 제한 -->
+                        <input type="range" id="threshold-slider" min="5" max="20" step="1" value="10" oninput="updateFilter()">
+                    </div>
+
+                    <div class="slider-container" style="background: #FDFDFD;">
+                        <div class="slider-header" style="justify-content: center;">✨ 자동 글씨/노이즈 제거</div>
+                        <div class="toggle-switch">
+                            <div class="t-btn active" id="t-auto-off" onclick="setAutoRemove(false)">끄기</div>
+                            <div class="t-btn" id="t-auto-on" onclick="setAutoRemove(true)">적용하기</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 다듬기 탭 -->
+                <div class="tab-content" id="tab-edit">
+                    <div class="btn-grid grid-2">
+                        <button class="tool-btn action-btn" onclick="undo()" id="btn-undo" style="opacity:0.4;">↩️ 취소</button>
+                        <button class="tool-btn btn-danger" onclick="clearDrawings()">🗑️ 리셋</button>
+                    </div>
+
+                    <div class="btn-grid grid-2" style="margin-top: 5px;">
+                        <button class="tool-btn selected" id="tool-eraser" onclick="setTool('eraser')">🧽 지우개</button>
+                        <button class="tool-btn" id="tool-pencil" onclick="setTool('pencil')">✏️ 연필</button>
+                        <button class="tool-btn" id="tool-pan" onclick="setTool('pan')" style="grid-column: 1 / span 2;">🤚 화면 이동</button>
+                    </div>
+
+                    <div class="slider-container">
+                        <div class="slider-header">
+                            <span>🖌️ 브러시 굵기</span>
+                            <span id="brush-val" style="color:var(--primary);">15</span>
+                        </div>
+                        <input type="range" id="brush-slider" min="3" max="50" step="1" value="15" oninput="document.getElementById('brush-val').innerText=this.value">
+                    </div>
+
+                    <div class="slider-container" id="pencil-opacity-container" style="opacity:0.5;">
+                        <div class="slider-header">
+                            <span>🖤 연필 진하기</span>
+                            <span id="pencil-opacity-val" style="color:var(--primary);">100%</span>
+                        </div>
+                        <input type="range" id="pencil-opacity-slider" min="10" max="100" step="5" value="100" oninput="document.getElementById('pencil-opacity-val').innerText=this.value+'%'">
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <script>
+        // --- 패널 UI 컨트롤 ---
+        let isPanelOpen = false;
+        function togglePanel() {
+            isPanelOpen = !isPanelOpen;
+            document.getElementById('tool-panel').classList.toggle('open', isPanelOpen);
+            document.body.classList.toggle('panel-open', isPanelOpen);
+            updateToggleText();
+        }
+        function updateToggleText() {
+            const btn = document.getElementById('panel-toggle');
+            const isLandscape = window.innerWidth > window.innerHeight;
+            if(isPanelOpen) btn.innerHTML = isLandscape ? '▶ 닫기' : '▼ 닫기';
+            else btn.innerHTML = isLandscape ? '◀ 도구' : '▲ 도구';
+        }
+
+        function switchPanelTab(tabId) {
+            document.querySelectorAll('.ptab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.getElementById('btn-tab-' + tabId).classList.add('active');
+            document.getElementById('tab-' + tabId).classList.add('active');
+            
+            if(tabId === 'edit') setTool('eraser'); else setTool('pan');
+        }
+
+        // --- 이미지 렌더링 엔진 ---
+        const cvs = document.getElementById('mapCanvas');
+        const ctx = cvs.getContext('2d');
+        const viewport = document.getElementById('map-viewport');
+        const msg = document.getElementById('loading-msg');
+        
+        let baseCanvas = document.createElement('canvas'); let baseCtx = baseCanvas.getContext('2d');
+        let drawCanvas = document.createElement('canvas'); let drawCtx = drawCanvas.getContext('2d');
+
+        let originalImgData = null;
+        let baseImgW = 1000, baseImgH = 1000;
+        let scale = 1, panX = 0, panY = 0;
+        let startX = 0, startY = 0;
+        let initialPinchDist = null; let initialScale = 1;
+        
+        let curTool = 'pan'; 
+        let isAutoRemove = false;
+        let mapState = { isDrawing: false, isPanning: false, strokePoints: [] };
+        let historyStack = []; let historyStep = -1;
+
+        let isRedrawScheduled = false;
+        function scheduleRedraw() {
+            if (!isRedrawScheduled) {
+                isRedrawScheduled = true;
+                requestAnimationFrame(() => { redraw(); isRedrawScheduled = false; });
+            }
+        }
+
+        function handleImageUpload(e) {
+            const file = e.target.files[0]; if(!file) return;
+            
+            document.getElementById('welcome-screen').style.display = 'none';
+            document.getElementById('main-back-btn').style.display = 'block';
+            document.getElementById('main-header').style.display = 'flex';
+            viewport.style.display = 'block';
+            document.getElementById('tool-panel').style.display = 'flex';
+            msg.style.display = 'block';
+            
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const imgElement = new Image();
+                imgElement.onload = () => {
+                    const maxDim = 1200; 
+                    let w = imgElement.width, h = imgElement.height;
+                    if(w > maxDim || h > maxDim) {
+                        if(w > h) { h = Math.round((h * maxDim) / w); w = maxDim; }
+                        else { w = Math.round((w * maxDim) / h); h = maxDim; }
+                    }
+                    
+                    baseImgW = w; baseImgH = h;
+                    baseCanvas.width = drawCanvas.width = baseImgW;
+                    baseCanvas.height = drawCanvas.height = baseImgH;
+                    
+                    baseCtx.drawImage(imgElement, 0, 0, w, h);
+                    originalImgData = baseCtx.getImageData(0, 0, w, h);
+                    
+                    drawCtx.clearRect(0,0,w,h);
+                    historyStack = []; historyStep = -1;
+                    
+                    updateFilter();
+                    saveHistory(); 
+                    
+                    resetZoomControl(); 
+                    window.addEventListener('resize', () => { updateToggleText(); resize(); });
+                };
+                imgElement.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function resize() {
+            cvs.width = viewport.clientWidth; cvs.height = viewport.clientHeight; 
+            const maxPanX = cvs.width - 50; const minPanX = -(baseImgW * scale) + 50;
+            const maxPanY = cvs.height - 50; const minPanY = -(baseImgH * scale) + 50;
+            panX = Math.max(minPanX, Math.min(maxPanX, panX)); panY = Math.max(minPanY, Math.min(maxPanY, panY));
+            scheduleRedraw(); 
+        }
+
+        function zoomView(factor) {
+            const newScale = Math.min(Math.max(0.1, scale * factor), 5);
+            const cx = cvs.width / 2; const cy = cvs.height / 2;
+            panX = cx - (cx - panX) * (newScale / scale); panY = cy - (cy - panY) * (newScale / scale);
+            scale = newScale; scheduleRedraw();
+        }
+        
+        function resetZoomControl() { 
+            cvs.width = viewport.clientWidth; cvs.height = viewport.clientHeight; 
+            scale = Math.min(cvs.width / baseImgW, cvs.height / baseImgH) * 0.95;
+            panX = (cvs.width - baseImgW * scale) / 2; panY = (cvs.height - baseImgH * scale) / 2; 
+            scheduleRedraw(); 
+        }
+
+        function setAutoRemove(val) {
+            isAutoRemove = val;
+            document.getElementById('t-auto-on').classList.toggle('active', val);
+            document.getElementById('t-auto-off').classList.toggle('active', !val);
+            updateFilter();
+        }
+
+        function updateFilter() {
+            if(!originalImgData) return;
+            msg.style.display = 'block';
+
+            setTimeout(() => {
+                const th = parseInt(document.getElementById('threshold-slider').value);
+                document.getElementById('threshold-val').innerText = th;
+                const w = baseImgW; const h = baseImgH;
+                
+                const imgData = baseCtx.createImageData(w, h);
+                const src = originalImgData.data; const dst = imgData.data;
+                const gray = new Uint8ClampedArray(w * h);
+                
+                for (let i = 0; i < src.length; i += 4) {
+                    gray[i / 4] = 0.299 * src[i] + 0.587 * src[i+1] + 0.114 * src[i+2];
+                }
+
+                const edgeData = new Uint8ClampedArray(w * h);
+                for (let y = 1; y < h - 1; y++) {
+                    for (let x = 1; x < w - 1; x++) {
+                        const idx = y * w + x;
+                        const diffX = gray[idx + 1] - gray[idx - 1];
+                        const diffY = gray[idx + w] - gray[idx - w];
+                        const gradient = Math.sqrt(diffX*diffX + diffY*diffY);
+                        edgeData[idx] = gradient > th ? 0 : 255;
+                    }
+                }
+
+                if (isAutoRemove) {
+                    for (let y = 1; y < h - 1; y++) {
+                        for (let x = 1; x < w - 1; x++) {
+                            const idx = y * w + x;
+                            let maxVal = 0;
+                            for(let dy = -1; dy <= 1; dy++) {
+                                for(let dx = -1; dx <= 1; dx++) {
+                                    const val = edgeData[(y+dy)*w + (x+dx)];
+                                    if(val > maxVal) maxVal = val;
+                                }
+                            }
+                            const dIdx = idx * 4;
+                            dst[dIdx] = dst[dIdx+1] = dst[dIdx+2] = maxVal; dst[dIdx+3] = 255;
+                        }
+                    }
+                } else {
+                    for (let y = 0; y < h; y++) {
+                        for (let x = 0; x < w; x++) {
+                            const idx = y * w + x;
+                            const dIdx = idx * 4;
+                            const color = (x===0 || x===w-1 || y===0 || y===h-1) ? 255 : edgeData[idx];
+                            dst[dIdx] = dst[dIdx+1] = dst[dIdx+2] = color; dst[dIdx+3] = 255;
+                        }
+                    }
+                }
+                
+                baseCtx.putImageData(imgData, 0, 0);
+                msg.style.display = 'none';
+                scheduleRedraw();
+            }, 50);
+        }
+
+        function setTool(t) {
+            curTool = t;
+            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('selected'));
+            if(document.getElementById('tool-' + t)) document.getElementById('tool-' + t).classList.add('selected');
+            document.getElementById('pencil-opacity-container').style.opacity = t==='pencil' ? '1' : '0.5';
+            cvs.style.cursor = (t === 'pan') ? 'grab' : 'crosshair';
+        }
+
+        function saveHistory() {
+            historyStack = historyStack.slice(0, historyStep + 1);
+            historyStack.push(drawCtx.getImageData(0, 0, baseImgW, baseImgH));
+            historyStep++; updateHistoryBtns();
+        }
+        function undo() { if(historyStep > 0) { historyStep--; drawCtx.putImageData(historyStack[historyStep], 0, 0); scheduleRedraw(); updateHistoryBtns(); } }
+        function redo() { if(historyStep < historyStack.length - 1) { historyStep++; drawCtx.putImageData(historyStack[historyStep], 0, 0); scheduleRedraw(); updateHistoryBtns(); } }
+        function updateHistoryBtns() { document.getElementById('btn-undo').style.opacity = historyStep > 0 ? "1" : "0.4"; document.getElementById('btn-redo').style.opacity = historyStep < historyStack.length - 1 ? "1" : "0.4"; }
+        function clearDrawings() { if(confirm("다듬은 내용을 모두 초기화할까요?")) { drawCtx.clearRect(0,0,baseImgW, baseImgH); saveHistory(); scheduleRedraw(); } }
+
+        function getPt(evt) {
+            const rect = cvs.getBoundingClientRect();
+            const cx = evt.clientX || (evt.touches && evt.touches[0] ? evt.touches[0].clientX : 0);
+            const cy = evt.clientY || (evt.touches && evt.touches[0] ? evt.touches[0].clientY : 0);
+            return { x: (cx - rect.left - panX) / scale, y: (cy - rect.top - panY) / scale };
+        }
+
+        function drawSmoothPath(context, pts, type, w) {
+            if(pts.length === 0) return;
+            context.beginPath(); context.moveTo(pts[0].x, pts[0].y);
+            if(pts.length === 1) { context.lineTo(pts[0].x + 0.1, pts[0].y); }
+            else if (pts.length === 2) { context.lineTo(pts[1].x, pts[1].y); }
+            else {
+                for (let i = 1; i < pts.length - 2; i++) { context.quadraticCurveTo(pts[i].x, pts[i].y, (pts[i].x + pts[i + 1].x)/2, (pts[i].y + pts[i + 1].y)/2); }
+                context.quadraticCurveTo(pts[pts.length - 2].x, pts[pts.length - 2].y, pts[pts.length - 1].x, pts[pts.length - 1].y);
+            }
+            context.lineCap = 'round'; context.lineJoin = 'round';
+            
+            if (type === 'eraser') {
+                context.strokeStyle = "#FFFFFF"; context.lineWidth = w; context.stroke(); 
+            } else if (type === 'pencil') { 
+                const op = parseInt(document.getElementById('pencil-opacity-slider').value)/100;
+                context.strokeStyle = `rgba(0,0,0,${op})`; context.lineWidth = Math.max(2, w/4); context.stroke(); 
+            }
+        }
+
+        cvs.addEventListener('pointerdown', e => {
+            if(e.pointerType === 'touch' && !e.isPrimary) return; 
+            cvs.setPointerCapture(e.pointerId); 
+            
+            const rect = cvs.getBoundingClientRect(); const clkX = e.clientX - rect.left; const clkY = e.clientY - rect.top;
+            if (curTool === 'pan') { mapState.isPanning = true; startX = clkX - panX; startY = clkY - panY; return; }
+
+            if(['eraser','pencil'].includes(curTool)) {
+                const p = getPt(e); if (!p) return;
+                mapState.isDrawing = true; mapState.strokePoints = [p]; 
+            }
+        });
+
+        cvs.addEventListener('pointermove', e => {
+            const rect = cvs.getBoundingClientRect(); const mx = e.clientX - rect.left; const my = e.clientY - rect.top;
+            
+            if (mapState.isPanning && curTool === 'pan') { panX = mx - startX; panY = my - startY; scheduleRedraw(); return; }
+            
+            if (mapState.isDrawing) {
+                const p = getPt(e); if(p) { 
+                    mapState.strokePoints.push(p); 
+                    drawSmoothPath(drawCtx, mapState.strokePoints.slice(-2), curTool, parseFloat(document.getElementById('brush-slider').value));
+                    scheduleRedraw(); 
+                }
+            }
+        });
+
+        cvs.addEventListener('pointerup', e => {
+            cvs.releasePointerCapture(e.pointerId);
+            if (mapState.isPanning) mapState.isPanning = false;
+            if (mapState.isDrawing) { mapState.isDrawing = false; mapState.strokePoints = []; saveHistory(); }
+        });
+
+        cvs.addEventListener('touchstart', e => {
+            if(e.touches.length === 2) {
+                initialPinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                initialScale = scale;
+            }
+        });
+        cvs.addEventListener('touchmove', e => {
+            if(e.touches.length === 2 && initialPinchDist) {
+                e.preventDefault();
+                const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                const newScale = Math.min(Math.max(0.1, initialScale * (dist / initialPinchDist)), 5);
+                const cx = (e.touches[0].clientX + e.touches[1].clientX)/2 - cvs.getBoundingClientRect().left;
+                const cy = (e.touches[0].clientY + e.touches[1].clientY)/2 - cvs.getBoundingClientRect().top;
+                panX = cx - (cx - panX) * (newScale / scale); panY = cy - (cy - panY) * (newScale / scale); scale = newScale; scheduleRedraw();
+            }
+        }, {passive: false});
+        cvs.addEventListener('touchend', e => { if(e.touches.length < 2) initialPinchDist = null; });
+        
+        cvs.addEventListener('wheel', e => {
+            e.preventDefault();
+            const factor = e.deltaY < 0 ? 1.1 : 0.9;
+            const rect = cvs.getBoundingClientRect(); const mx = e.clientX - rect.left; const my = e.clientY - rect.top;
+            const newScale = Math.min(Math.max(0.1, scale * factor), 5);
+            panX = mx - (mx - panX) * (newScale / scale); panY = my - (my - panY) * (newScale / scale); scale = newScale; scheduleRedraw();
+        }, {passive: false});
+
+        function redraw() {
+            ctx.fillStyle = "#FFFFFF"; ctx.fillRect(0, 0, cvs.width, cvs.height);
+            ctx.save(); ctx.translate(panX, panY); ctx.scale(scale, scale);
+            
+            ctx.drawImage(baseCanvas, 0, 0, baseImgW, baseImgH);
+            ctx.drawImage(drawCanvas, 0, 0, baseImgW, baseImgH);
+            
+            ctx.restore();
+        }
+
+        function handleAction(type) {
+            const tempScale = scale; const tempPanX = panX; const tempPanY = panY;
+            
+            scale = Math.min(cvs.width / baseImgW, cvs.height / baseImgH) * 0.95;
+            panX = (cvs.width - baseImgW * scale) / 2; panY = (cvs.height - baseImgH * scale) / 2;
+            redraw(); 
+
+            cvs.toBlob(blob => {
+                scale = tempScale; panX = tempPanX; panY = tempPanY; scheduleRedraw();
+                if (type === 'download') {
+                    const url = URL.createObjectURL(blob); const a = document.createElement('a'); 
+                    a.href = url; a.download = `나만의_백지도.jpg`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+                }
+            }, 'image/jpeg', 0.95);
+        }
+
+        function launchPipeline() {
+            if(!originalImgData) return;
+            msg.style.display = 'block'; document.getElementById('loading-msg').innerHTML = 'MAP1(백지도 그리기)로 전송 중... 🚀';
+            
+            const tempScale = scale; const tempPanX = panX; const tempPanY = panY;
+            scale = 1; panX = 0; panY = 0; redraw(); 
+
+            const exportCvs = document.createElement('canvas'); exportCvs.width = baseImgW; exportCvs.height = baseImgH;
+            const exCtx = exportCvs.getContext('2d');
+            exCtx.drawImage(baseCanvas, 0, 0); exCtx.drawImage(drawCanvas, 0, 0);
+
+            const dataUrl = exportCvs.toDataURL('image/jpeg', 0.95);
+            sessionStorage.setItem('customMap', dataUrl);
+            
+            scale = tempScale; panX = tempPanX; panY = tempPanY; scheduleRedraw();
+
+            setTimeout(() => {
+                if(window.parent && window.parent.openApp) window.parent.openApp('map1.html');
+                else location.href = 'map1.html';
+            }, 300);
+        }
+    </script>
+</body>
+</html>
