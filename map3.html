@@ -18,72 +18,91 @@
         }
 
         * { box-sizing: border-box; user-select: none; -webkit-touch-callout: none; }
+        
+        /* 💡 레이아웃의 근간: 100dvh Column Flexbox */
         body { font-family: 'Jua', sans-serif; margin: 0; padding: 0; background: var(--bg); display: flex; flex-direction: column; height: 100dvh; overflow: hidden; color: var(--text); overscroll-behavior: none; }
 
-        /* --- 상단 최소화 플로팅 헤더 --- */
-        .btn-back-floating { position: absolute; left: 15px; top: 15px; background: #E74C3C; color: white; border: none; padding: 10px 18px; border-radius: 14px; font-family: 'Jua', sans-serif; font-size: 1.1rem; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.15); z-index: 200; transition: 0.2s;}
-        .btn-back-floating:hover { transform: translateY(-2px); background: #C0392B; }
-        
-        header { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.95); padding: 8px 25px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); display: flex; align-items: center; z-index: 100;}
-        header h1 { margin: 0; font-size: 1.3rem; color: var(--primary); white-space: nowrap; }
+        /* --- 상태 관리용 클래스 (display: none 대체) --- */
+        .fade-hidden { opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; transition: opacity 0.3s, visibility 0.3s; }
 
-        /* --- 메인 작업 영역 --- */
-        main { display: flex; position: relative; width: 100vw; height: 100dvh; overflow: hidden; }
+        /* --- 상단 고정 헤더 --- */
+        header { display: flex; align-items: center; justify-content: space-between; height: 65px; background: rgba(255,255,255,0.95); padding: 0 20px; flex-shrink: 0; box-shadow: 0 2px 10px rgba(0,0,0,0.05); z-index: 100;}
+        .header-left { display: flex; gap: 10px; width: 250px; }
+        .header-right { width: 250px; } /* 중앙 정렬용 여백 */
         
-        #map-viewport { flex: 1; position: relative; background: #E5E8E8; overflow: hidden; touch-action: none; display: none; }
-        canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+        .btn-back { background: #E74C3C; color: white; border: none; padding: 8px 15px; border-radius: 12px; font-family: 'Jua', sans-serif; font-size: 1.1rem; cursor: pointer; transition: 0.2s; white-space: nowrap;}
+        .btn-back:hover { background: #C0392B; transform: translateY(-2px); }
+        .btn-reload { background: #95A5A6; }
+        .btn-reload:hover { background: #7F8C8D; }
         
-        #loading-msg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 1.5rem; font-weight: bold; color: var(--primary); background: rgba(255,255,255,0.95); padding: 20px 40px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; z-index: 200; border: 2px solid var(--primary); display: none;}
+        header h1 { margin: 0; font-size: 1.5rem; color: var(--primary); text-align: center; flex: 1; white-space: nowrap;}
 
-        .zoom-controls { position: absolute; bottom: 20px; left: 20px; display: flex; flex-direction: column; gap: 8px; z-index: 50; transition: bottom 0.3s; }
+        /* --- 💡 코어 레이아웃: 메인 Flex 영역 --- */
+        main { flex: 1; display: flex; overflow: hidden; position: relative; }
+
+        /* 좌측 작업/안내 영역 (Flex 1로 남은 공간 자동 채움) */
+        .left-area { flex: 1; position: relative; display: flex; flex-direction: column; background: #E5E8E8; overflow: hidden; }
+
+        /* 💡 시작 화면 (마법사 모드) */
+        #welcome-screen { position: absolute; inset: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; z-index: 20; transition: opacity 0.3s; }
+        .welcome-box { background: white; padding: 40px; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); max-width: 600px; width: 90%; }
+        .welcome-upload-btn { display: inline-block; padding: 15px 30px; font-size: 1.5rem; cursor: pointer; border-radius: 20px; background: var(--primary); color: white; border: none; font-family: 'Jua', sans-serif; transition: 0.2s; box-shadow: 0 4px 15px rgba(93,173,226,0.4); margin-top: 20px;}
+        .welcome-upload-btn:active { transform: scale(0.95); }
+        #upload-guide-msg { font-size: 1.5rem; color: #95A5A6; text-align: center; line-height: 1.6; margin-bottom: 20px;}
+
+        /* 💡 지도 뷰포트 및 캔버스 */
+        #map-viewport { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 10; display: flex; }
+        canvas { width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+        
+        #loading-msg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 1.5rem; font-weight: bold; color: var(--primary); background: rgba(255,255,255,0.95); padding: 20px 40px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; z-index: 30; border: 2px solid var(--primary); transition: opacity 0.3s;}
+
+        .zoom-controls { position: absolute; bottom: 20px; left: 20px; display: flex; flex-direction: column; gap: 8px; z-index: 15; }
         .zoom-btn { background: white; border: 2px solid var(--border); border-radius: 50%; width: 50px; height: 50px; font-size: 1.5rem; cursor: pointer; font-family: 'Jua', sans-serif; font-weight: bold; color: var(--text); box-shadow: 0 4px 10px rgba(0,0,0,0.1);}
         .zoom-btn-rect { border-radius: 12px; width: 50px; height: 40px; font-size: 1rem;}
 
-        .action-controls { position: absolute; bottom: 20px; right: 20px; display: flex; flex-direction: column; align-items: flex-end; gap: 15px; z-index: 50; transition: bottom 0.3s, right 0.3s; }
+        .action-controls { position: absolute; bottom: 20px; right: 20px; display: flex; flex-direction: column; align-items: flex-end; gap: 15px; z-index: 15; }
         .fab-btn { border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.2); cursor: pointer; display: flex; justify-content: center; align-items: center; font-family: 'Jua', sans-serif; color: white; transition: 0.2s;}
         .fab-submit { background: var(--primary); width: 80px; height: 80px; font-size: 1.1rem; border-radius: 25px; font-weight: bold; flex-direction: column; gap: 4px; box-shadow: 0 6px 20px rgba(93,173,226,0.5);}
         .fab-submit:active { transform: scale(0.95); background: var(--primary-hover); }
         .fab-save { background: #95A5A6; width: 50px; height: 50px; border-radius: 50%; font-size: 1.4rem; }
 
-        /* 💡 수정: 우측 도구 패널 z-index 상향 조정 및 기본 노출 설정 */
-        aside { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: absolute; z-index: 200; box-shadow: 0 0 20px rgba(0,0,0,0.15); display: flex; flex-direction: column; }
-        .panel-toggle { position: absolute; background: var(--panel); box-shadow: 0 2px 10px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; cursor: pointer; font-family: 'Jua', sans-serif; color: var(--primary); font-size: 1.2rem; border: 1px solid #ddd; z-index: 201;}
+        /* --- 💡 우측 도구 패널 (Flex 구조 병합) --- */
+        aside#tool-panel { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); position: relative; z-index: 50; display: flex; flex-direction: column; flex-shrink: 0; transition: margin 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         
-        .panel-content { flex: 1; display: flex; flex-direction: column; padding: 15px; overflow: hidden; position: relative; }
+        .panel-toggle { position: absolute; background: var(--panel); box-shadow: 0 2px 10px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; cursor: pointer; font-family: 'Jua', sans-serif; color: var(--primary); font-size: 1.2rem; border: 1px solid #ddd; z-index: 55;}
         
-        /* 💡 도구 비활성화 오버레이 */
-        #panel-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.6); backdrop-filter: blur(3px); z-index: 10; display: flex; align-items: center; justify-content: center; text-align: center; }
+        .panel-content { flex: 1; display: flex; flex-direction: column; padding: 15px; position: relative; overflow: hidden;}
+        
+        /* 💡 패널 오버레이 (비활성 상태 표시) */
+        #panel-overlay { position: absolute; inset: 0; background: rgba(255,255,255,0.6); backdrop-filter: blur(3px); z-index: 40; display: flex; align-items: center; justify-content: center; text-align: center; transition: opacity 0.3s;}
+        .overlay-box { background: white; padding: 15px 25px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 2px solid var(--primary); color: var(--text); font-weight: bold; font-size: 1.1rem; line-height: 1.5; }
 
-        /* 💡 시작 화면 영역 분리 (패널 뒤로 밀리지 않도록 공간 확보) */
-        #welcome-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 150; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-        .welcome-box { background: white; padding: 40px; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); max-width: 600px; width: 90%; }
-        .welcome-upload-btn { display: inline-block; padding: 15px 30px; font-size: 1.5rem; cursor: pointer; border-radius: 20px; background: var(--primary); color: white; border: none; font-family: 'Jua', sans-serif; transition: 0.2s; box-shadow: 0 4px 15px rgba(93,173,226,0.4); margin-top: 20px;}
-        .welcome-upload-btn:active { transform: scale(0.95); }
-        #upload-guide-msg { font-size: 1.5rem; color: #95A5A6; text-align: center; line-height: 1.6; }
-
-        .ptab-menu { display: flex; gap: 5px; background: #F0F3F4; padding: 6px; border-radius: 14px; margin-bottom: 15px; flex-shrink: 0;}
+        .ptab-menu { display: flex; gap: 5px; background: #F0F3F4; padding: 6px; border-radius: 14px; margin-bottom: 15px; flex-shrink: 0; position: relative; z-index: 5;}
         .ptab-btn { flex: 1; padding: 10px; border: none; background: transparent; font-family: 'Jua', sans-serif; font-size: 1.15rem; border-radius: 10px; color: #7F8C8D; cursor: pointer; transition: 0.2s; white-space: nowrap;}
         .ptab-btn.active { background: white; color: var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.05); font-weight: bold;}
         
-        .tab-content { display: none; flex-direction: column; gap: 15px; flex: 1; overflow-y: auto; padding-right: 5px;}
-        .tab-content.active { display: flex; }
+        /* 💡 탭 내용을 Absolute 겹침으로 처리 (display:none 퇴출) */
+        .panel-body { flex: 1; position: relative; overflow: hidden; }
+        .tab-content { position: absolute; inset: 0; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; padding-right: 5px; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.2s; }
+        .tab-content.active { opacity: 1; visibility: visible; pointer-events: auto; }
 
+        /* 반응형: 가로 모드 */
         @media (orientation: landscape) {
-            aside { right: 0; top: 0; height: 100%; width: 340px; transform: translateX(340px); border-left: 1px solid #ddd; border-top-left-radius: 20px; border-bottom-left-radius: 20px;}
-            aside.open { transform: translateX(0); }
-            .panel-toggle { left: -45px; top: 50%; transform: translateY(-50%); width: 45px; height: 110px; border-radius: 16px 0 0 16px; border-right: none; writing-mode: vertical-rl; text-orientation: mixed; letter-spacing: 2px;}
-            body.panel-open .action-controls { right: calc(340px + 20px); }
-            #welcome-screen { width: calc(100% - 340px); } /* 💡 패널 영역만큼 줄임 */
+            main { flex-direction: row; }
+            aside#tool-panel { width: 340px; height: 100%; border-left: 1px solid #ddd; }
+            aside#tool-panel.closed { margin-right: -340px; }
+            .panel-toggle { top: 50%; left: -45px; transform: translateY(-50%); width: 45px; height: 110px; border-radius: 16px 0 0 16px; border-right: none; writing-mode: vertical-rl; text-orientation: mixed; letter-spacing: 2px;}
         }
 
+        /* 반응형: 세로 모드 */
         @media (orientation: portrait) {
-            aside { bottom: 0; left: 0; width: 100%; height: 45vh; transform: translateY(45vh); border-top: 1px solid #ddd; border-top-left-radius: 24px; border-top-right-radius: 24px;}
-            aside.open { transform: translateY(0); }
+            main { flex-direction: column; }
+            aside#tool-panel { width: 100%; height: 45vh; border-top: 1px solid #ddd; }
+            aside#tool-panel.closed { margin-bottom: -45vh; }
             .panel-toggle { top: -45px; left: 50%; transform: translateX(-50%); width: 130px; height: 45px; border-radius: 16px 16px 0 0; border-bottom: none;}
-            body.panel-open .action-controls, body.panel-open .zoom-controls { bottom: calc(45vh + 20px); }
-            #welcome-screen { height: calc(100% - 45vh); } /* 💡 패널 영역만큼 줄임 */
         }
 
+        /* --- 도구 패널 내부 컴포넌트 --- */
         .btn-grid { display: grid; gap: 8px; }
         .grid-2 { grid-template-columns: repeat(2, 1fr); }
         .grid-3 { grid-template-columns: repeat(3, 1fr); }
@@ -104,60 +123,69 @@
 </head>
 <body>
 
-    <button class="btn-back-floating" onclick="if(window.parent && window.parent.closeApp) window.parent.closeApp(); else history.back();">🔙 메뉴로</button>
-    <button class="btn-back-floating" id="main-back-btn" style="display:none; left: 130px; background: #95A5A6;" onclick="location.reload();">🔄 다시 올리기</button>
-    
-    <header id="main-header" style="display:none;">
+    <header>
+        <div class="header-left">
+            <button class="btn-back" onclick="if(window.parent && window.parent.closeApp) window.parent.closeApp(); else history.back();">🔙 메뉴로</button>
+            <button id="main-back-btn" class="btn-back btn-reload fade-hidden" onclick="location.reload();">🔄 다시 올리기</button>
+        </div>
         <h1>🗺️ 스크린샷 백지도 메이커</h1>
+        <div class="header-right"></div>
     </header>
 
     <main>
-        <!-- 1단계: 사진 선택 마법사 -->
-        <div id="welcome-screen">
-            <div class="welcome-box">
-                <div id="upload-guide-msg" style="margin-bottom: 20px;">
-                    <span style="font-size: 3rem;">📷</span><br><br>
-                    <span style="font-size: 1.4rem; color: #4A4A4A; font-weight:bold;">지도 화면을 캡처한 이미지를 불러와 주세요.</span><br><br>
-                    <span style="font-size: 1.1rem; color: #BDC3C7;">──────────────────────</span><br><br>
-                    <div style="text-align: left; font-size: 1.2rem; line-height: 1.8; display: inline-block; font-family: 'Jua', sans-serif; color: #4A4A4A;">
-                        <span style="font-size: 1.4rem; color: var(--primary);">📖 백지도 메이커 사용 방법</span><br><br>
-                        ① 네이버 지도에서 원하는 지역을 검색합니다.<br>
-                        ② 지도 설정에서 '지적편집도'를 선택합니다.<br>
-                        ③ 원하는 범위를 화면에 맞춘 뒤 캡처합니다.<br>
-                        ④ 캡처한 이미지를 불러옵니다.<br>
-                        ⑤ 자동으로 백지도가 완성됩니다.<br><br>
-                        <span style="color: #D35400;">💡 TIP</span><br>
-                        '지적편집도'로 캡처하면 가장 선명하고 깔끔한 백지도를 만들 수 있습니다.
+        <!-- 💡 메인 뷰포트 래퍼 -->
+        <div class="left-area">
+            
+            <!-- 1단계: 마법사 뷰 (절대 좌표 덮기) -->
+            <div id="welcome-screen">
+                <div class="welcome-box">
+                    <div id="upload-guide-msg">
+                        <span style="font-size: 3rem;">📷</span><br><br>
+                        <span style="font-size: 1.4rem; color: #4A4A4A; font-weight:bold;">지도 화면을 캡처한 이미지를 불러와 주세요.</span><br><br>
+                        <span style="font-size: 1.1rem; color: #BDC3C7;">──────────────────────</span><br><br>
+                        <div style="text-align: left; font-size: 1.2rem; line-height: 1.8; display: inline-block; font-family: 'Jua', sans-serif; color: #4A4A4A;">
+                            <span style="font-size: 1.4rem; color: var(--primary);">📖 백지도 메이커 사용 방법</span><br><br>
+                            ① 네이버 지도에서 원하는 지역을 검색합니다.<br>
+                            ② 지도 설정에서 '지적편집도'를 선택합니다.<br>
+                            ③ 원하는 범위를 화면에 맞춘 뒤 캡처합니다.<br>
+                            ④ 캡처한 이미지를 불러옵니다.<br>
+                            ⑤ 자동으로 백지도가 완성됩니다.<br><br>
+                            <span style="color: #D35400;">💡 TIP</span><br>
+                            '지적편집도'로 캡처하면 가장 선명하고 깔끔한 백지도를 만들 수 있습니다.
+                        </div>
                     </div>
+                    <label class="welcome-upload-btn" for="map-upload">📂 사진 불러오기</label>
+                    <input type="file" id="map-upload" accept="image/*" onchange="handleImageUpload(event)" style="display:none;">
                 </div>
-                <label class="welcome-upload-btn" for="map-upload">📂 사진 불러오기</label>
-                <input type="file" id="map-upload" accept="image/*" onchange="handleImageUpload(event)" style="display:none;">
             </div>
+
+            <!-- 2단계: 캔버스 뷰 -->
+            <div id="map-viewport">
+                <div id="loading-msg" class="fade-hidden">지도를 깨끗하게 변환하는 중이에요! 🚀</div>
+                <canvas id="mapCanvas"></canvas>
+                
+                <div class="zoom-controls fade-hidden" id="zoom-ui">
+                    <button class="zoom-btn" onclick="zoomView(1.3)">+</button>
+                    <button class="zoom-btn zoom-btn-rect" onclick="resetZoomControl()">맞춤</button>
+                    <button class="zoom-btn" onclick="zoomView(0.7)">-</button>
+                </div>
+                
+                <div class="action-controls fade-hidden" id="action-ui">
+                    <button class="fab-btn fab-save" onclick="handleAction('download')" title="기기에 저장">📥</button>
+                    <button class="fab-btn fab-submit" onclick="launchPipeline()"><span>🚀</span><span style="font-size: 0.9rem;">MAP1 전송</span></button>
+                </div>
+            </div>
+
         </div>
 
-        <div id="map-viewport">
-            <div id="loading-msg">지도를 깨끗하게 변환하는 중이에요! 🚀</div>
-            <canvas id="mapCanvas"></canvas>
-            
-            <div class="zoom-controls">
-                <button class="zoom-btn" onclick="zoomView(1.3)">+</button>
-                <button class="zoom-btn zoom-btn-rect" onclick="resetZoomControl()">맞춤</button>
-                <button class="zoom-btn" onclick="zoomView(0.7)">-</button>
-            </div>
-            
-            <div class="action-controls">
-                <button class="fab-btn fab-save" onclick="handleAction('download')" title="기기에 저장">📥</button>
-                <button class="fab-btn fab-submit" onclick="launchPipeline()"><span>🚀</span><span style="font-size: 0.9rem;">MAP1 전송</span></button>
-            </div>
-        </div>
-
+        <!-- 💡 우측 패널 래퍼 (Flex item) -->
         <aside id="tool-panel">
             <div class="panel-toggle" id="panel-toggle" onclick="togglePanel()">▲ 도구</div>
             <div class="panel-content">
                 
                 <!-- 💡 도구 비활성화 오버레이 -->
                 <div id="panel-overlay">
-                    <div style="background: white; padding: 15px 25px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 2px solid var(--primary); color: var(--text); font-weight: bold; text-align: center; line-height: 1.5;">
+                    <div class="overlay-box">
                         <span style="font-size: 2rem;">📷</span><br>먼저 사진을<br>불러와주세요!
                     </div>
                 </div>
@@ -167,60 +195,59 @@
                     <button class="ptab-btn" id="btn-tab-edit" onclick="switchPanelTab('edit')">✏️ 다듬기</button>
                 </div>
 
-                <!-- 추출 탭 -->
-                <div class="tab-content active" id="tab-extract">
-                    <div style="background: #EBF5FB; border-radius: 14px; padding: 15px; font-size: 1rem; line-height: 1.5; color: #2C3E50; text-align: center;">
-                        슬라이더를 움직여 지도의 테두리가<br>가장 선명하게 나오는 값을 찾으세요!
-                    </div>
-
-                    <div class="slider-container">
-                        <div class="slider-header">
-                            <span>🎚️ 외곽선 민감도</span>
-                            <!-- 💡 수정: 초기 설정 값 10 반영 -->
-                            <span id="threshold-val" style="color:var(--primary);">10</span>
+                <div class="panel-body">
+                    <!-- 추출 탭 -->
+                    <div class="tab-content active" id="tab-extract">
+                        <div style="background: #EBF5FB; border-radius: 14px; padding: 15px; font-size: 1rem; line-height: 1.5; color: #2C3E50; text-align: center;">
+                            슬라이더를 움직여 지도의 테두리가<br>가장 선명하게 나오는 값을 찾으세요!
                         </div>
-                        <!-- 💡 수정: 범위 5 ~ 20으로 제한 -->
-                        <input type="range" id="threshold-slider" min="5" max="20" step="1" value="10" oninput="updateFilter()">
-                    </div>
 
-                    <div class="slider-container" style="background: #FDFDFD;">
-                        <div class="slider-header" style="justify-content: center;">✨ 자동 글씨/노이즈 제거</div>
-                        <div class="toggle-switch">
-                            <div class="t-btn active" id="t-auto-off" onclick="setAutoRemove(false)">끄기</div>
-                            <div class="t-btn" id="t-auto-on" onclick="setAutoRemove(true)">적용하기</div>
+                        <div class="slider-container">
+                            <div class="slider-header">
+                                <span>🎚️ 외곽선 민감도</span>
+                                <span id="threshold-val" style="color:var(--primary);">10</span>
+                            </div>
+                            <input type="range" id="threshold-slider" min="5" max="20" step="1" value="10" oninput="updateFilter()">
+                        </div>
+
+                        <div class="slider-container" style="background: #FDFDFD;">
+                            <div class="slider-header" style="justify-content: center;">✨ 자동 글씨/노이즈 제거</div>
+                            <div class="toggle-switch">
+                                <div class="t-btn active" id="t-auto-off" onclick="setAutoRemove(false)">끄기</div>
+                                <div class="t-btn" id="t-auto-on" onclick="setAutoRemove(true)">적용하기</div>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- 다듬기 탭 -->
-                <div class="tab-content" id="tab-edit">
-                    <!-- 💡 수정: btn-redo 버튼 명확히 표시 -->
-                    <div class="btn-grid grid-3">
-                        <button class="tool-btn action-btn" onclick="undo()" id="btn-undo" style="opacity:0.4;">↩️ 취소</button>
-                        <button class="tool-btn action-btn" onclick="redo()" id="btn-redo" style="opacity:0.4;">↪️ 복구</button>
-                        <button class="tool-btn btn-danger" onclick="clearDrawings()">🗑️ 리셋</button>
-                    </div>
-
-                    <div class="btn-grid grid-2" style="margin-top: 5px;">
-                        <button class="tool-btn selected" id="tool-eraser" onclick="setTool('eraser')">🧽 지우개</button>
-                        <button class="tool-btn" id="tool-pencil" onclick="setTool('pencil')">✏️ 연필</button>
-                        <button class="tool-btn" id="tool-pan" onclick="setTool('pan')" style="grid-column: 1 / span 2;">🤚 화면 이동</button>
-                    </div>
-
-                    <div class="slider-container">
-                        <div class="slider-header">
-                            <span>🖌️ 브러시 굵기</span>
-                            <span id="brush-val" style="color:var(--primary);">15</span>
+                    <!-- 다듬기 탭 -->
+                    <div class="tab-content" id="tab-edit">
+                        <div class="btn-grid grid-3">
+                            <button class="tool-btn action-btn" onclick="undo()" id="btn-undo" style="opacity:0.4;">↩️ 취소</button>
+                            <button class="tool-btn action-btn" onclick="redo()" id="btn-redo" style="opacity:0.4;">↪️ 복구</button>
+                            <button class="tool-btn btn-danger" onclick="clearDrawings()">🗑️ 리셋</button>
                         </div>
-                        <input type="range" id="brush-slider" min="3" max="50" step="1" value="15" oninput="document.getElementById('brush-val').innerText=this.value">
-                    </div>
 
-                    <div class="slider-container" id="pencil-opacity-container" style="opacity:0.5;">
-                        <div class="slider-header">
-                            <span>🖤 연필 진하기</span>
-                            <span id="pencil-opacity-val" style="color:var(--primary);">100%</span>
+                        <div class="btn-grid grid-2" style="margin-top: 5px;">
+                            <button class="tool-btn selected" id="tool-eraser" onclick="setTool('eraser')">🧽 지우개</button>
+                            <button class="tool-btn" id="tool-pencil" onclick="setTool('pencil')">✏️ 연필</button>
+                            <button class="tool-btn" id="tool-pan" onclick="setTool('pan')" style="grid-column: 1 / span 2;">🤚 화면 이동</button>
                         </div>
-                        <input type="range" id="pencil-opacity-slider" min="10" max="100" step="5" value="100" oninput="document.getElementById('pencil-opacity-val').innerText=this.value+'%'">
+
+                        <div class="slider-container">
+                            <div class="slider-header">
+                                <span>🖌️ 브러시 굵기</span>
+                                <span id="brush-val" style="color:var(--primary);">15</span>
+                            </div>
+                            <input type="range" id="brush-slider" min="3" max="50" step="1" value="15" oninput="document.getElementById('brush-val').innerText=this.value">
+                        </div>
+
+                        <div class="slider-container" id="pencil-opacity-container" style="opacity:0.5;">
+                            <div class="slider-header">
+                                <span>🖤 연필 진하기</span>
+                                <span id="pencil-opacity-val" style="color:var(--primary);">100%</span>
+                            </div>
+                            <input type="range" id="pencil-opacity-slider" min="10" max="100" step="5" value="100" oninput="document.getElementById('pencil-opacity-val').innerText=this.value+'%'">
+                        </div>
                     </div>
                 </div>
             </div>
@@ -232,9 +259,10 @@
         let isPanelOpen = false;
         function togglePanel() {
             isPanelOpen = !isPanelOpen;
-            document.getElementById('tool-panel').classList.toggle('open', isPanelOpen);
-            document.body.classList.toggle('panel-open', isPanelOpen);
+            document.getElementById('tool-panel').classList.toggle('closed', !isPanelOpen);
             updateToggleText();
+            // 패널이 열리거나 닫힐 때 캔버스 영역 사이즈 재계산을 위해 약간 지연
+            setTimeout(resize, 300);
         }
         function updateToggleText() {
             const btn = document.getElementById('panel-toggle');
@@ -281,23 +309,24 @@
         }
 
         window.onload = () => { 
-            cvs.width = viewport.clientWidth; cvs.height = viewport.clientHeight; 
+            // 시작 시에는 패널이 열려 있도록 명시적 세팅
+            isPanelOpen = true;
+            document.getElementById('tool-panel').classList.remove('closed');
             window.addEventListener('resize', () => { updateToggleText(); resize(); });
-            
-            // 💡 시작 시 도구 패널을 보이도록 열어둡니다.
-            togglePanel();
+            updateToggleText();
         };
 
         function handleImageUpload(e) {
             const file = e.target.files[0]; if(!file) return;
             
-            // 💡 오버레이 및 마법사 UI 해제
-            document.getElementById('welcome-screen').style.display = 'none';
-            document.getElementById('panel-overlay').style.display = 'none';
-            document.getElementById('main-back-btn').style.display = 'block';
-            document.getElementById('main-header').style.display = 'flex';
-            viewport.style.display = 'block';
-            msg.style.display = 'block';
+            // 💡 visibility 제어로 레이아웃 흔들림 완전 차단
+            document.getElementById('welcome-screen').classList.add('fade-hidden');
+            document.getElementById('panel-overlay').classList.add('fade-hidden');
+            document.getElementById('main-back-btn').classList.remove('fade-hidden');
+            document.getElementById('zoom-ui').classList.remove('fade-hidden');
+            document.getElementById('action-ui').classList.remove('fade-hidden');
+            
+            msg.classList.remove('fade-hidden');
             
             const reader = new FileReader();
             reader.onload = function(event) {
@@ -359,10 +388,9 @@
             updateFilter();
         }
 
-        // 💡 핵심 렌더링 필터: map3 오리지널 엔진
         function updateFilter() {
             if(!originalImgData) return;
-            msg.style.display = 'block';
+            msg.classList.remove('fade-hidden');
 
             setTimeout(() => {
                 const th = parseInt(document.getElementById('threshold-slider').value);
@@ -415,7 +443,7 @@
                 }
                 
                 baseCtx.putImageData(imgData, 0, 0);
-                msg.style.display = 'none';
+                msg.classList.add('fade-hidden');
                 scheduleRedraw();
             }, 50);
         }
@@ -452,7 +480,6 @@
             return { x: (cx - rect.left - panX) / scale, y: (cy - rect.top - panY) / scale };
         }
 
-        // 지우개는 바탕(흰색)을 칠해 지우는 효과, 연필은 그리기
         function drawSmoothPath(context, pts, type, w) {
             if(pts.length === 0) return;
             context.beginPath(); context.moveTo(pts[0].x, pts[0].y);
@@ -558,7 +585,8 @@
 
         function launchPipeline() {
             if(!originalImgData) return;
-            msg.style.display = 'block'; document.getElementById('loading-msg').innerHTML = 'MAP1(백지도 그리기)로 전송 중... 🚀';
+            msg.classList.remove('fade-hidden'); 
+            document.getElementById('loading-msg').innerHTML = 'MAP1(백지도 그리기)로 전송 중... 🚀';
             
             const tempScale = scale; const tempPanX = panX; const tempPanY = panY;
             scale = 1; panX = 0; panY = 0; redraw(); 
