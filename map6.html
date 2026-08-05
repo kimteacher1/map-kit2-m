@@ -19,7 +19,6 @@
         * { box-sizing: border-box; user-select: none; -webkit-touch-callout: none; }
         body { font-family: 'Jua', sans-serif; margin: 0; padding: 0; background: var(--bg); display: flex; flex-direction: column; height: 100dvh; overflow: hidden; color: var(--text); overscroll-behavior: none; }
 
-        /* 💡 1, 5번 요구사항: 좌측 상단 플로팅 Back 버튼 및 단순화된 중앙 헤더 */
         .btn-back-floating { position: absolute; left: 15px; top: 15px; background: #E74C3C; color: white; border: none; padding: 10px 18px; border-radius: 14px; font-family: 'Jua', sans-serif; font-size: 1.1rem; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.15); z-index: 200; transition: 0.2s;}
         .btn-back-floating:hover { transform: translateY(-2px); background: #C0392B; }
         
@@ -138,7 +137,6 @@
 
                 <div class="tab-content active" id="tab-layer">
                     <div class="layer-card-container" id="layer-container">
-                        <!-- 역사 레이어 동적 생성 -->
                     </div>
                 </div>
 
@@ -175,8 +173,6 @@
                 </div>
 
                 <div class="tab-content" id="tab-sticker">
-                    
-                    <!-- 💡 3, 4번 요구사항: prompt 대체 패널 직접 입력창 -->
                     <div style="display: flex; gap: 8px; margin-bottom: 10px; background: #FDFDFD; padding: 10px; border-radius: 14px; border: 1px solid var(--border); align-items: center;">
                         <span style="font-size: 1.2rem;">🏷️</span>
                         <input type="text" id="custom-sticker-text" placeholder="이름/사건 직접 입력" style="flex: 1; border: none; border-bottom: 2px solid var(--primary); outline: none; font-family: 'Jua', sans-serif; font-size: 1.1rem; background: transparent; color: var(--text);">
@@ -189,7 +185,6 @@
                     </div>
 
                     <div class="sticker-list" id="sticker-container">
-                        <!-- 역사 스티커 팩 동적 생성 -->
                     </div>
                 </div>
             </div>
@@ -197,6 +192,24 @@
     </main>
 
     <script>
+        // --- 10번 개선 사항: 저장용 IndexedDB 초기화 ---
+        let dbMap;
+        function initDB() {
+            return new Promise((resolve) => {
+                const req = indexedDB.open("TimeMachineDB", 1);
+                req.onupgradeneeded = e => { if(!e.target.result.objectStoreNames.contains('maps')) e.target.result.createObjectStore('maps'); };
+                req.onsuccess = e => { dbMap = e.target.result; resolve(); };
+            });
+        }
+        function saveToDB(key, data) { if(dbMap) dbMap.transaction('maps', 'readwrite').objectStore('maps').put(JSON.stringify(data), key); }
+        function loadFromDB(key) {
+            return new Promise(resolve => {
+                if(!dbMap) return resolve(null);
+                const req = dbMap.transaction('maps', 'readonly').objectStore('maps').get(key);
+                req.onsuccess = () => resolve(req.result ? JSON.parse(req.result) : null);
+            });
+        }
+
         // map2 프레임워크 패널 관리
         let isPanelOpen = false;
         function togglePanel() {
@@ -211,7 +224,6 @@
             if(isPanelOpen) btn.innerHTML = isLandscape ? '▶ 닫기' : '▼ 닫기';
             else btn.innerHTML = isLandscape ? '◀ 도구' : '▲ 도구';
         }
-        window.addEventListener('resize', updateToggleText);
 
         function switchPanelTab(tabId) {
             document.querySelectorAll('.ptab-btn').forEach(b => b.classList.remove('active'));
@@ -268,8 +280,8 @@
         let stickers = []; let hoverIdx = -1; 
         let draggingSticker = null; let stickerMoved = false;
         let initialPinchDist = null; let initialScale = 1;
+        let lastPinchCenter = null;
 
-        // requestAnimationFrame 렌더링 도입
         let isRedrawScheduled = false;
         function scheduleRedraw() {
             if (!isRedrawScheduled) {
@@ -294,13 +306,13 @@
             });
         }
 
-        window.onload = () => { 
+        window.onload = async () => { 
+            await initDB();
             cvs.width = viewport.clientWidth; cvs.height = viewport.clientHeight; 
             initUI();
             if(historyConfig.length > 0) setEra(historyConfig[0].id); 
         };
 
-        // 💡 4번 요구사항: 시대 변경 시 확인창 안전장치
         function setEra(id) {
             if (historyStep > -1 && !confirm('시대를 변경하면 현재 작성 중인 내용이 모두 초기화됩니다. 계속하시겠습니까?')) {
                 document.getElementById('era-select').value = currentEra ? currentEra.id : historyConfig[0].id;
@@ -312,7 +324,8 @@
             
             document.getElementById('era-select').value = id;
 
-            if(!currentEra || currentEra.base !== era.base) {
+            // 1번 및 6번 버그 해결: 무조건 시대(id)가 바뀌면 완벽히 초기화
+            if(!currentEra || currentEra.id !== era.id) {
                 stickers = [];
                 drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
                 historyStack = []; stickerHistoryStack = []; historyStep = -1;
@@ -340,19 +353,44 @@
                 era.layers.forEach((layer, idx) => {
                     const img = new Image(); img.crossOrigin = "Anonymous";
                     img.onload = () => { loadedLayers[`layer-${idx}`] = img; loadedCount++; if(loadedCount === era.layers.length) finalizeLoad(); };
-                    img.onerror = () => { loadedCount++; if(loadedCount === era.layers.length) finalizeLoad(); };
+                    // 11번 버그 해결: 로딩 실패 시 알림창 띄우기
+                    img.onerror = () => { 
+                        alert(`"${layer.name}" 레이어 이미지를 불러오지 못했습니다.`);
+                        loadedCount++; 
+                        if(loadedCount === era.layers.length) finalizeLoad(); 
+                    };
                     img.src = BASE_URL + layer.file;
                 });
             };
+            baseImg.onerror = () => {
+                alert(`기본 지도를 불러오지 못했습니다. 네트워크를 확인해주세요.`);
+                msg.style.display = 'none';
+            }
             baseImg.src = BASE_URL + era.base;
         }
 
-        function finalizeLoad() {
+        async function finalizeLoad() {
             msg.style.display = 'none';
-            if (historyStep === -1) {
-                drawCtx.clearRect(0,0,baseImgW, baseImgH);
-                saveHistory(); resetZoom();
-            } else { scheduleRedraw(); }
+
+            // 10번 개선 사항: 저장된 데이터 불러오기
+            const savedStickers = await loadFromDB(`${currentEra.id}_stickers`);
+            const savedDraw = await loadFromDB(`${currentEra.id}_draw`);
+            
+            if (savedStickers && savedDraw) {
+                stickers = savedStickers;
+                const img = new Image();
+                img.onload = () => {
+                    drawCtx.clearRect(0,0,baseImgW, baseImgH);
+                    drawCtx.drawImage(img, 0, 0);
+                    saveHistory(); resetZoom();
+                };
+                img.src = savedDraw;
+            } else {
+                if (historyStep === -1) {
+                    drawCtx.clearRect(0,0,baseImgW, baseImgH);
+                    saveHistory(); resetZoom();
+                } else { scheduleRedraw(); }
+            }
         }
 
         function renderLayerUI() {
@@ -420,12 +458,27 @@
         function setColor(color, btn) { curColor = color; document.querySelectorAll('.color-preset').forEach(b => b.classList.remove('active')); if(btn) btn.classList.add('active'); }
         function clearDrawings() { if(confirm("그린 펜 자국과 스티커를 싹 지울까요? (지도는 유지됩니다)")) { stickers = []; activeCurve = null; drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height); saveHistory(); scheduleRedraw(); } }
 
+        function autoSave() {
+            if(!currentEra) return;
+            saveToDB(`${currentEra.id}_stickers`, stickers);
+            saveToDB(`${currentEra.id}_draw`, drawCanvas.toDataURL());
+        }
+
         // --- Undo / Redo 기능 ---
         function saveHistory() {
             historyStep++; historyStack = historyStack.slice(0, historyStep); stickerHistoryStack = stickerHistoryStack.slice(0, historyStep);
             historyStack.push(drawCtx.getImageData(0, 0, drawCanvas.width, drawCanvas.height));
             stickerHistoryStack.push(JSON.parse(JSON.stringify(stickers)));
+            
+            // 5번 버그 해결: 메모리 보호를 위해 최대 20개까지만 보관
+            if (historyStack.length > 20) {
+                historyStack.shift();
+                stickerHistoryStack.shift();
+                historyStep--;
+            }
+
             updateHistoryBtns();
+            autoSave(); 
         }
 
         function undo() {
@@ -433,6 +486,7 @@
                 historyStep--; drawCtx.putImageData(historyStack[historyStep], 0, 0);
                 stickers = JSON.parse(JSON.stringify(stickerHistoryStack[historyStep]));
                 burnActiveCurve(); scheduleRedraw(); updateHistoryBtns();
+                autoSave();
             }
         }
 
@@ -441,6 +495,7 @@
                 historyStep++; drawCtx.putImageData(historyStack[historyStep], 0, 0);
                 stickers = JSON.parse(JSON.stringify(stickerHistoryStack[historyStep]));
                 burnActiveCurve(); scheduleRedraw(); updateHistoryBtns();
+                autoSave();
             }
         }
 
@@ -449,7 +504,6 @@
             document.getElementById('btn-redo').style.opacity = historyStep < historyStack.length - 1 ? "1" : "0.4";
         }
 
-        // --- 💡 6번 요구사항: 줌/팬 (마우스 위치 기준 확대) ---
         function zoomView(factor) {
             const newScale = Math.min(Math.max(0.1, scale * factor), 5);
             const cx = cvs.width / 2; const cy = cvs.height / 2;
@@ -462,15 +516,23 @@
             panX = (cvs.width - baseImgW * scale) / 2; panY = (cvs.height - baseImgH * scale) / 2; scheduleRedraw();
         }
 
+        // 8번 버그 해결: 회전 시 화면 중심 유지
         window.addEventListener('resize', () => { 
+            const oldCx = (cvs.width / 2 - panX) / scale;
+            const oldCy = (cvs.height / 2 - panY) / scale;
+            
             cvs.width = viewport.clientWidth; cvs.height = viewport.clientHeight; 
+            
+            panX = cvs.width / 2 - oldCx * scale;
+            panY = cvs.height / 2 - oldCy * scale;
+            
             const maxPanX = cvs.width - 50; const minPanX = -(baseImgW * scale) + 50;
             const maxPanY = cvs.height - 50; const minPanY = -(baseImgH * scale) + 50;
             panX = Math.max(minPanX, Math.min(maxPanX, panX)); panY = Math.max(minPanY, Math.min(maxPanY, panY));
             scheduleRedraw(); 
+            updateToggleText();
         });
 
-        // 마우스 휠 줌 (손가락 위치 기준)
         cvs.addEventListener('wheel', e => {
             e.preventDefault();
             const factor = e.deltaY < 0 ? 1.1 : 0.9;
@@ -526,7 +588,6 @@
             activeCurve = null; tempCtx.clearRect(0,0,baseImgW, baseImgH); saveHistory();
         }
 
-        // --- 마우스 이벤트 맵핑 (Pointer Capture 적용) ---
         cvs.addEventListener('pointerdown', e => {
             if(e.pointerType === 'touch' && !e.isPrimary) return; 
             cvs.setPointerCapture(e.pointerId); 
@@ -537,13 +598,12 @@
 
             if (curTool === 'pan') { isDraggingMap = true; startX = clkX - panX; startY = clkY - panY; return; }
 
-            // 💡 3번 요구사항: 스티커 선택 및 삭제 영역 안정화
             let clickedSticker = -1;
             for (let i = stickers.length - 1; i >= 0; i--) {
                 const sx = stickers[i].realX * scale + panX; const sy = stickers[i].realY * scale + panY; const sScale = stickers[i].scale || 1; 
                 
-                // 삭제 버튼 범위 (기존처럼)
-                if (hoverIdx === i && Math.hypot(clkX - (sx+(22*sScale*scale)), clkY - (sy-(22*sScale*scale))) < (25*sScale*scale)) {
+                // 7번 버그 해결: 줌 상태와 관계없이 항상 클릭 가능한 삭제 버튼 범위 연산
+                if (hoverIdx === i && Math.hypot(clkX - (sx + (22 * sScale)), clkY - (sy - (22 * sScale))) < (25 * sScale)) {
                     stickers.splice(i, 1); hoverIdx = -1; 
                     document.getElementById('custom-sticker-text').value = '';
                     saveHistory(); scheduleRedraw(); return; 
@@ -557,7 +617,6 @@
                 draggingSticker.downX = clkX; draggingSticker.downY = clkY; 
                 stickerSlider.value = draggingSticker.scale || 1; 
                 
-                // 💡 텍스트 입력창 동기화 (Prompt 대체)
                 const st = draggingSticker.type === 'text-only' ? draggingSticker.text : (draggingSticker.t || '');
                 document.getElementById('custom-sticker-text').value = st;
                 
@@ -568,7 +627,6 @@
                 if (curIcon.type === 'text-only') {
                     stickers.push({ type: 'text-only', text: curIcon.text, realX: rx, realY: ry, scale: currentGlobalScale }); 
                 } else if (curIcon.e === '🏷️') {
-                    // Fallback
                 } else {
                     stickers.push({ type: 'icon', e: curIcon.e, t: curIcon.t, realX: rx, realY: ry, scale: currentGlobalScale }); 
                     if (curIcon.e === '📍') stickers.push({ type: 'bubble', e: '💬', t: '사건 내용', realX: rx + 60, realY: ry - 30, scale: currentGlobalScale });
@@ -578,7 +636,6 @@
                 stickerMoved = true;
                 saveHistory(); 
 
-                // 💡 스티커 붙인 직후 자동 이동 모드 전환
                 setTool('pan');
                 scheduleRedraw(); return; 
             }
@@ -612,7 +669,6 @@
 
             if (draggingSticker && curTool !== 'pan' && !isDraggingMap) { 
                 e.preventDefault(); 
-                // 💡 드래그 임계치 적용 (5px 이상 이동해야 드래그로 판정)
                 if (!stickerMoved) { if (Math.hypot(mx - draggingSticker.downX, my - draggingSticker.downY) > 5) stickerMoved = true; }
                 if (stickerMoved) { draggingSticker.realX = rx; draggingSticker.realY = ry; }
                 scheduleRedraw(); return; 
@@ -650,7 +706,9 @@
             }
 
             if (draggingSticker) {
-                saveHistory(); draggingSticker = null; scheduleRedraw();
+                // 3, 4번 버그 해결: 진짜로 이동(5px 이상)했을 때만 Undo 스택 추가
+                if (stickerMoved) saveHistory();
+                draggingSticker = null; scheduleRedraw();
             }
         });
 
@@ -658,6 +716,8 @@
             if(e.touches.length === 2) {
                 initialPinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
                 initialScale = scale;
+                // 9번 버그 해결을 위한 터치 중심점 저장
+                lastPinchCenter = { x: (e.touches[0].clientX + e.touches[1].clientX)/2, y: (e.touches[0].clientY + e.touches[1].clientY)/2 };
             }
         });
         cvs.addEventListener('touchmove', e => {
@@ -665,12 +725,25 @@
                 e.preventDefault();
                 const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
                 const newScale = Math.min(Math.max(0.1, initialScale * (dist / initialPinchDist)), 5);
-                const cx = (e.touches[0].clientX + e.touches[1].clientX)/2 - cvs.getBoundingClientRect().left;
-                const cy = (e.touches[0].clientY + e.touches[1].clientY)/2 - cvs.getBoundingClientRect().top;
-                panX = cx - (cx - panX) * (newScale / scale); panY = cy - (cy - panY) * (newScale / scale); scale = newScale; scheduleRedraw();
+                const cx = (e.touches[0].clientX + e.touches[1].clientX)/2;
+                const cy = (e.touches[0].clientY + e.touches[1].clientY)/2;
+                
+                // 9번 버그 해결: Pinch 시 Pan(이동) 동시 처리 로직
+                if(lastPinchCenter) {
+                    panX += (cx - lastPinchCenter.x);
+                    panY += (cy - lastPinchCenter.y);
+                }
+                lastPinchCenter = { x: cx, y: cy };
+                
+                const localCx = cx - cvs.getBoundingClientRect().left;
+                const localCy = cy - cvs.getBoundingClientRect().top;
+                panX = localCx - (localCx - panX) * (newScale / scale); 
+                panY = localCy - (localCy - panY) * (newScale / scale); 
+                scale = newScale; 
+                scheduleRedraw();
             }
         }, {passive: false});
-        cvs.addEventListener('touchend', e => { if(e.touches.length < 2) initialPinchDist = null; });
+        cvs.addEventListener('touchend', e => { if(e.touches.length < 2) { initialPinchDist = null; lastPinchCenter = null; } });
 
         // --- 순수 렌더링 함수 ---
         function redraw() {
@@ -723,7 +796,6 @@
             }
         }
 
-        // 💡 1번 요구사항: 이름표 확대 시 렌더링 증발 버그 픽스 (sx, sy 사용 보장)
         function drawStickers() {
             stickers.forEach((s, i) => {
                 const sx = s.realX; const sy = s.realY; const sScale = s.scale || 1; 
@@ -744,8 +816,14 @@
                 }
 
                 if (hoverIdx === i || draggingSticker === s) {
-                    ctx.fillStyle = "#E74C3C"; ctx.beginPath(); ctx.arc(sx+(22*sScale), sy-(22*sScale), 16*sScale, 0, Math.PI*2); ctx.fill();
-                    ctx.fillStyle = "white"; ctx.font = `bold ${16*sScale}px sans-serif`; ctx.fillText("X", sx+(22*sScale), sy-(21*sScale));
+                    // 7번 버그 해결: 줌(scale) 비율의 역수를 곱해서 렌더링 시 시각적 위치 크기를 고정시킴
+                    const btnOffsetX = 22 * sScale / scale;
+                    const btnOffsetY = 22 * sScale / scale;
+                    const btnRadius = 16 * sScale / scale;
+                    const fontSize = 16 * sScale / scale;
+
+                    ctx.fillStyle = "#E74C3C"; ctx.beginPath(); ctx.arc(sx + btnOffsetX, sy - btnOffsetY, btnRadius, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = "white"; ctx.font = `bold ${fontSize}px sans-serif`; ctx.fillText("X", sx + btnOffsetX, sy - btnOffsetY + (1/scale));
                 }
             });
         }
@@ -766,8 +844,13 @@
                 scheduleRedraw();
 
                 if (type === 'submit') {
-                    if (window.parent && window.parent.handleMapSave) window.parent.handleMapSave(reader.result, "타임머신 역사 지도"); 
-                    else alert("런처를 통해 접속해야 제출이 가능합니다."); 
+                    // 2, 12번 크리티컬 버그 해결: FileReader 생성 및 읽기 로직 추가
+                    const reader = new FileReader();
+                    reader.readAsDataURL(blob);
+                    reader.onloadend = () => {
+                        if (window.parent && window.parent.handleMapSave) window.parent.handleMapSave(reader.result, "타임머신 역사 지도"); 
+                        else alert("런처를 통해 접속해야 제출이 가능합니다."); 
+                    };
                 } else if (type === 'download') {
                     const eraName = currentEra ? currentEra.name : "역사지도";
                     const url = URL.createObjectURL(blob); const a = document.createElement('a'); 
