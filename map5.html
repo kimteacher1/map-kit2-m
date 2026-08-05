@@ -144,9 +144,11 @@
 <body>
 
     <header>
-        <button class="btn-back" onclick="if(window.parent && window.parent.closeApp) window.parent.closeApp(); else history.back();">🔙 메뉴로</button>
-        <!-- 💡 8. 새 공책 시작 버튼 추가 -->
-        <button class="btn-back" onclick="startNewNotebook()" style="left: 125px; background: #9B59B6; font-size: 1.1rem; padding: 11px 18px;">✨ 새 공책 시작</button>
+        <!-- 💡 두 버튼을 flex 컨테이너로 묶고 기존 absolute 속성을 해제(static)하여 자동 정렬 -->
+        <div style="position: absolute; left: 20px; top: 20px; display: flex; gap: 10px; pointer-events: auto;">
+            <button class="btn-back" onclick="if(window.parent && window.parent.closeApp) window.parent.closeApp(); else history.back();" style="position: static; margin: 0;">🔙 메뉴로</button>
+            <button class="btn-back" onclick="startNewNotebook()" style="position: static; margin: 0; background: #9B59B6; font-size: 1.1rem; padding: 11px 18px;">✨ 새 공책 시작</button>
+        </div>
         <div class="nb-topic">
             <input type="text" id="nb-topic-input" placeholder="📖 오늘의 배움 주제를 적어주세요." oninput="triggerAutoSave()">
         </div>
