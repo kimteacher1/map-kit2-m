@@ -23,7 +23,6 @@
         
         body { font-family: 'Jua', sans-serif; margin: 0; padding: 0; background: var(--bg); display: flex; flex-direction: column; height: 100dvh; overflow: hidden; color: var(--text); overscroll-behavior: none; }
 
-        /* --- 💡 수정: 상단 최소화 플로팅 헤더 --- */
         header { position: absolute; top: 0; left: 0; width: 100%; height: 80px; background: transparent; box-shadow: none; display: flex; align-items: center; justify-content: center; z-index: 100; pointer-events: none;}
         .btn-back { position: absolute; left: 20px; top: 20px; background: #E74C3C; color: white; border: none; padding: 10px 18px; border-radius: 14px; font-family: 'Jua', sans-serif; font-size: 1.2rem; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.1); pointer-events: auto; transition: 0.2s;}
         .btn-back:hover { transform: translateY(-2px); background: #C0392B; }
@@ -31,7 +30,9 @@
         .nb-topic input { width: 350px; padding: 8px; font-size: 1.3rem; border: none; outline: none; font-family: 'Jua', sans-serif; background: transparent; color: var(--text); text-align: center; }
         .nb-topic input::placeholder { color: #BDC3C7; }
 
-        /* --- 메인 작업 영역 및 패널 --- */
+        /* --- 7번 개선: 모드 안내 배지 --- */
+        #mode-badge { position: absolute; top: 80px; left: 50%; transform: translateX(-50%); background: rgba(52, 152, 219, 0.9); color: white; padding: 6px 15px; border-radius: 20px; font-size: 1.1rem; font-weight: bold; z-index: 400; box-shadow: 0 4px 10px rgba(0,0,0,0.1); pointer-events: none; transition: 0.3s;}
+
         main { display: flex; position: relative; width: 100vw; height: 100dvh; overflow: hidden; }
         
         #map-viewport { flex: 1; position: relative; background: #E5E8E8; overflow: hidden; touch-action: none; }
@@ -61,7 +62,6 @@
         .fab-submit:active { transform: scale(0.95); background: var(--primary-hover); }
         .fab-save { background: #95A5A6; width: 50px; height: 50px; border-radius: 50%; font-size: 1.4rem; }
 
-        /* --- 우측 도구 패널 --- */
         aside { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: absolute; z-index: 100; box-shadow: 0 0 20px rgba(0,0,0,0.15); display: flex; flex-direction: column; }
         .panel-toggle { position: absolute; background: var(--panel); box-shadow: 0 2px 10px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; cursor: pointer; font-family: 'Jua', sans-serif; color: var(--primary); font-size: 1.2rem; border: 1px solid #ddd; z-index: 101;}
         
@@ -122,7 +122,6 @@
         .p-2 { flex-direction: row; } .p-2 div { flex: 1; background: white; border-radius: 6px; border: 1.5px dashed #BDC3C7;}
         .p-3 { display: grid; grid-template-columns: 1fr 2.5fr; grid-template-rows: 2fr 1fr; } .p-3 div { background: white; border-radius: 6px; border: 1.5px dashed #BDC3C7; } .p-3 .b { grid-column: 1 / span 2; }
 
-        /* --- 배움공책 양식 (원본 유지) --- */
         .layout-container { width: 100%; height: 100%; padding: 30px; display: flex; gap: 20px; }
         .text-box { width: 100%; height: 100%; border: none; background: transparent; resize: none; font-family: sans-serif; font-size: 1.2rem; line-height: 1.7; outline: none; padding: 20px; border: 2px dashed #BDC3C7; border-radius: 16px; color: #34495E; transition: 0.2s;}
         .text-box:focus { background: rgba(255,255,255,0.9); border-color: var(--primary); }
@@ -146,20 +145,22 @@
 
     <header>
         <button class="btn-back" onclick="if(window.parent && window.parent.closeApp) window.parent.closeApp(); else history.back();">🔙 메뉴로</button>
+        <!-- 💡 8. 새 공책 시작 버튼 추가 -->
+        <button class="btn-back" onclick="startNewNotebook()" style="left: 125px; background: #9B59B6; font-size: 1.1rem; padding: 11px 18px;">✨ 새 공책 시작</button>
         <div class="nb-topic">
-            <input type="text" id="nb-topic-input" placeholder="📖 오늘의 배움 주제를 적어주세요.">
+            <input type="text" id="nb-topic-input" placeholder="📖 오늘의 배움 주제를 적어주세요." oninput="triggerAutoSave()">
         </div>
     </header>
+
+    <div id="mode-badge">⌨️ 글쓰기 모드</div>
 
     <main>
         <div id="map-viewport">
             <div id="notebook-container">
-                <!-- 텍스트 입력 영역 (DOM) -->
                 <div id="layout-wrapper" class="layout-container layout-1">
                     <div class="top-area">이곳에 펜으로 그림을 그리거나 스티커를 붙여보세요!</div>
                     <div class="bottom-area"><textarea class="text-box chat-target" placeholder="여기에 배운 내용을 줄글로 정리해 보세요."></textarea></div>
                 </div>
-                <!-- 그리기 및 스티커 캔버스 -->
                 <canvas id="display-canvas" width="1200" height="850"></canvas>
             </div>
             
@@ -185,7 +186,6 @@
                     <button class="ptab-btn" id="btn-tab-layout" onclick="switchPanelTab('layout')">📑 양식</button>
                 </div>
 
-                <!-- 1. 그리기 탭 -->
                 <div class="tab-content active" id="tab-draw">
                     <div class="btn-grid grid-3" style="margin-bottom: 5px;">
                         <button class="tool-btn selected" id="tool-text" onclick="setTool('text')">⌨️ 글쓰기</button>
@@ -197,7 +197,6 @@
                         <button class="tool-btn" id="tool-eraser" onclick="setTool('eraser')">🧽 지우개</button>
                     </div>
 
-                    <!-- 직관적 굵기 조절 (4단계) -->
                     <div class="btn-grid grid-4" style="grid-template-columns: repeat(4, 1fr); margin-top: 10px;">
                         <button class="size-btn active" onclick="setSize(3, this)"><span style="font-size: 8px;">●</span></button>
                         <button class="size-btn" onclick="setSize(8, this)"><span style="font-size: 14px;">●</span></button>
@@ -205,7 +204,6 @@
                         <button class="size-btn" onclick="setSize(28, this)"><span style="font-size: 28px;">●</span></button>
                     </div>
 
-                    <!-- 직관적 색상 팔레트 -->
                     <div class="color-picker-group" style="margin-top: 5px;">
                         <div class="color-preset active" style="background:#2C3E50;" onclick="setColor('#2C3E50', this)"></div>
                         <div class="color-preset" style="background:#E74C3C;" onclick="setColor('#E74C3C', this)"></div>
@@ -217,14 +215,13 @@
                     <div class="btn-grid grid-3" style="margin-top: 15px;">
                         <button class="tool-btn action-btn" onclick="undo()" id="btn-undo" style="opacity: 0.4;">↩️ 취소</button>
                         <button class="tool-btn action-btn" onclick="redo()" id="btn-redo" style="opacity: 0.4;">↪️ 복구</button>
-                        <button class="tool-btn btn-danger" onclick="clearAll()">🗑️ 싹지우기</button>
+                        <!-- 💡 7. 직관적인 버튼명 변경 -->
+                        <button class="tool-btn btn-danger" onclick="clearAll()" style="font-size: 0.95rem;">🗑️ 그림/스티커 지우기</button>
                     </div>
                 </div>
 
-                <!-- 2. 스티커 탭 -->
                 <div class="tab-content" id="tab-sticker">
                     
-                    <!-- 💡 수정: 스마트 텍스트 입력창 (Prompt 대체) -->
                     <div style="display: flex; gap: 8px; margin-bottom: 10px; background: #FDFDFD; padding: 10px; border-radius: 14px; border: 1px solid var(--border); align-items: center;">
                         <span style="font-size: 1.2rem;">🏷️</span>
                         <input type="text" id="custom-sticker-text" placeholder="이름/내용 편집" style="flex: 1; border: none; border-bottom: 2px solid var(--primary); outline: none; font-family: 'Jua', sans-serif; font-size: 1.1rem; background: transparent; color: var(--text);">
@@ -236,11 +233,9 @@
                         <input type="range" id="sticker-size-slider" min="0.5" max="3" step="0.1" value="1" oninput="updateStickerSize(this.value)">
                     </div>
                     <div class="sticker-list" id="sticker-container">
-                        <!-- JS에서 동적 생성 -->
                     </div>
                 </div>
 
-                <!-- 3. 양식 및 설정 탭 -->
                 <div class="tab-content" id="tab-layout">
                     <button class="tool-btn" style="background:#FEF9E7; border-color:#F1C40F; color:#D4AC0D; font-weight:bold; margin-bottom:10px;" onclick="importChatHistory()">💬 대화(기록) 불러오기</button>
                     
@@ -265,7 +260,73 @@
     </main>
 
     <script>
-        // --- UI 패널 컨트롤 ---
+        let dbNotebook;
+        function initDB() {
+            return new Promise((resolve) => {
+                const req = indexedDB.open("NotebookDB", 1);
+                req.onupgradeneeded = e => { if(!e.target.result.objectStoreNames.contains('notes')) e.target.result.createObjectStore('notes'); };
+                req.onsuccess = e => { dbNotebook = e.target.result; resolve(); };
+            });
+        }
+        function saveToDB(key, data) { if(dbNotebook) dbNotebook.transaction('notes', 'readwrite').objectStore('notes').put(JSON.stringify(data), key); }
+        function loadFromDB(key) {
+            return new Promise(resolve => {
+                if(!dbNotebook) return resolve(null);
+                const req = dbNotebook.transaction('notes', 'readonly').objectStore('notes').get(key);
+                req.onsuccess = () => resolve(req.result ? JSON.parse(req.result) : null);
+            });
+        }
+        
+        // --- 💡 1. AutoSave와 History 분리 (Debounce 적용) ---
+        let autoSaveTimer = null;
+        function triggerAutoSave() {
+            clearTimeout(autoSaveTimer);
+            autoSaveTimer = setTimeout(autoSave, 3000);
+        }
+
+        function autoSave() {
+            saveToDB('notebook_stickers', mapState.stickers);
+            saveToDB('notebook_draw', drawCanvas.toDataURL());
+            const textStates = Array.from(document.querySelectorAll('.text-box')).map(tb => tb.value);
+            saveToDB('notebook_texts', textStates);
+            saveToDB('notebook_topic', document.getElementById('nb-topic-input').value);
+            saveToDB('notebook_layout', document.getElementById('layout-wrapper').className);
+        }
+
+        // --- 💡 2. Text History 과부하 방지 (Debounce 적용) ---
+        let textHistoryTimer = null;
+        function bindTextHistory() {
+            document.querySelectorAll('.text-box').forEach(tb => {
+                tb.removeEventListener('input', handleTextInput);
+                tb.addEventListener('input', handleTextInput);
+            });
+        }
+        
+        function handleTextInput() {
+            triggerAutoSave();
+            clearTimeout(textHistoryTimer);
+            textHistoryTimer = setTimeout(saveHistory, 2000); 
+        }
+
+        // --- 💡 8. 새 공책 시작 기능 ---
+        function startNewNotebook() {
+            if(confirm("정말 새 공책을 시작할까요? (기존에 작성한 내용이 모두 삭제됩니다)")) {
+                drawCtx.clearRect(0, 0, nbW, nbH);
+                mapState.stickers = [];
+                document.querySelectorAll('.text-box').forEach(tb => tb.value = "");
+                document.getElementById('nb-topic-input').value = "";
+                
+                mapState.historyStack = [];
+                mapState.stickerHistoryStack = [];
+                mapState.textHistoryStack = [];
+                mapState.historyStep = -1;
+                
+                saveHistory(); 
+                autoSave(); 
+                scheduleRedraw();
+            }
+        }
+
         let isPanelOpen = false;
         function togglePanel() {
             isPanelOpen = !isPanelOpen;
@@ -288,14 +349,12 @@
             document.getElementById('tab-' + tabId).classList.add('active');
         }
 
-        // --- 스티커 팩 데이터 ---
         const stickerPack = [
             { e: "⭐", t: "중요" }, { e: "❓", t: "질문" }, { e: "💡", t: "핵심" }, { e: "📌", t: "포인트" }, 
             { e: "👍", t: "최고" }, { e: "🔥", t: "집중" }, { e: "🎯", t: "목표" }, { e: "✅", t: "확인" },
             { e: "🗺", t: "지도" }, { e: "🏛", t: "기관" }, { e: "🌊", t: "자연" }
         ];
 
-        // --- 상태 및 캔버스 엔진 ---
         const nbW = 1200; const nbH = 850;
         const cvs = document.getElementById('display-canvas');
         const ctx = cvs.getContext('2d');
@@ -310,13 +369,13 @@
         
         let mapState = {
             stickers: [],
-            historyStack: [], stickerHistoryStack: [], historyStep: -1,
+            historyStack: [], stickerHistoryStack: [], textHistoryStack: [], historyStep: -1,
             isDrawing: false, isPanning: false,
             strokePoints: [], lastPoint: null,
             selectedStickerIdx: -1, stickerMoved: false, downX: 0, downY: 0
         };
         
-        let curTool = 'text'; // 시작은 글쓰기 모드
+        let curTool = 'text'; 
         let drawColor = '#2C3E50'; let drawSize = 3; let curIcon = null;
         let scale = 1, panX = 0, panY = 0; let startX = 0, startY = 0;
         let initialPinchDist = null; let initialScale = 1;
@@ -329,12 +388,55 @@
             }
         }
 
-        window.onload = () => { 
+        window.onload = async () => { 
+            await initDB();
             renderStickers(); 
-            saveHistory(); 
+            
+            const savedLayout = await loadFromDB('notebook_layout');
+            if (savedLayout) {
+                if(savedLayout.includes('layout-1')) selectLayoutSafe(1);
+                else if(savedLayout.includes('layout-2')) selectLayoutSafe(2);
+                else if(savedLayout.includes('layout-3')) selectLayoutSafe(3);
+            } else {
+                bindTextHistory();
+            }
+
+            const savedStickers = await loadFromDB('notebook_stickers');
+            const savedDraw = await loadFromDB('notebook_draw');
+            const savedTexts = await loadFromDB('notebook_texts');
+            const savedTopic = await loadFromDB('notebook_topic');
+
+            if (savedStickers) mapState.stickers = savedStickers;
+            if (savedTopic) document.getElementById('nb-topic-input').value = savedTopic;
+            if (savedTexts) {
+                const textBoxes = document.querySelectorAll('.text-box');
+                savedTexts.forEach((txt, idx) => { if (textBoxes[idx]) textBoxes[idx].value = txt; });
+            }
+
+            if (savedDraw) {
+                const img = new Image();
+                img.onload = () => { drawCtx.drawImage(img, 0, 0); saveHistory(); };
+                img.src = savedDraw;
+            } else {
+                saveHistory(); 
+            }
+
             resize(); 
             window.addEventListener('resize', () => { updateToggleText(); resize(); });
         };
+
+        function selectLayoutSafe(type) {
+            document.querySelectorAll('.layout-card').forEach(c => c.classList.remove('selected'));
+            document.getElementById(`layout-card-${type}`).classList.add('selected');
+            const wrapper = document.getElementById('layout-wrapper');
+            wrapper.className = `layout-container layout-${type}`;
+            
+            if(type === 1) wrapper.innerHTML = `<div class="top-area">이곳에 펜으로 그림을 그리거나 스티커를 붙여보세요!</div><div class="bottom-area"><textarea class="text-box chat-target" placeholder="여기에 배운 내용을 줄글로 정리해 보세요."></textarea></div>`;
+            else if(type === 2) wrapper.innerHTML = `<div class="left-area"><textarea class="text-box chat-target" placeholder="오늘 알게 된 핵심 설명을 여기에 적어보세요."></textarea></div><div class="right-area">이곳에 지형이나<br>기호를 그려보세요.</div>`;
+            else if(type === 3) wrapper.innerHTML = `<div class="left-cue"><textarea class="text-box" placeholder="핵심 단어 / 질문"></textarea></div><div class="right-note"><textarea class="text-box chat-target" placeholder="상세 필기 및 그리기 영역"></textarea></div><div class="bottom-summary"><textarea class="text-box" placeholder="오늘 배운 내용 세 줄 요약!"></textarea></div>`;
+            
+            bindTextHistory();
+        }
 
         function resize() {
             const vpW = viewport.clientWidth; const vpH = viewport.clientHeight;
@@ -372,9 +474,17 @@
             return { x: (cx - rect.left) / scale, y: (cy - rect.top) / scale };
         }
 
-        // --- 💡 수정: 양식 변경 시 확인창 추가 ---
+        // --- 💡 3, 4. 양식 변경 시 텍스트 안전 병합 ---
         function selectLayout(type) {
-            if(mapState.historyStep > 0 && !confirm('정말 양식을 변경할까요? 기존에 작성한 내용이 모두 사라집니다.')) return;
+            if(mapState.historyStep > 0 && !confirm('양식을 변경할까요? (기존에 쓴 글씨는 지워지지 않고 메인 영역에 안전하게 모아집니다)')) return;
+
+            const oldTexts = Array.from(document.querySelectorAll('.text-box'))
+                                  .map(tb => tb.value.trim())
+                                  .filter(t => t !== "");
+            let mainText = "";
+            if (oldTexts.length > 0) {
+                mainText = oldTexts.join('\n\n---\n\n'); 
+            }
 
             document.querySelectorAll('.layout-card').forEach(c => c.classList.remove('selected'));
             document.getElementById(`layout-card-${type}`).classList.add('selected');
@@ -399,7 +509,16 @@
                     <div class="bottom-summary"><textarea class="text-box" placeholder="오늘 배운 내용 세 줄 요약!"></textarea></div>
                 `;
             }
+            
+            bindTextHistory();
+
+            const newTarget = document.querySelector('.chat-target');
+            if (newTarget && mainText) {
+                newTarget.value = mainText;
+            }
+            
             setTool('text');
+            saveHistory();
         }
 
         function importChatHistory() {
@@ -411,8 +530,16 @@
             const targetBox = document.querySelector('.chat-target');
             if(targetBox) {
                 const historyText = historyObj.slice(1).map(c => `[${c.role === 'user' ? '나' : '🤖 맵봇'}]\n${c.text}`).join('\n\n');
+                
+                if (targetBox.value.includes(historyText)) {
+                    alert("이미 공책에 불러온 대화 기록입니다.");
+                    return;
+                }
+                if(targetBox.value && !confirm("공책에 쓰인 내용 아래에 이어서 불러올까요?")) return;
+
                 targetBox.value += (targetBox.value ? '\n\n---\n\n' : '') + historyText;
                 alert("대화 내용이 공책에 쏙 들어왔습니다! 필요한 부분만 예쁘게 수정해보세요.");
+                saveHistory();
                 setTool('text');
             } else {
                 alert("글쓰기 영역이 있는 양식을 먼저 선택해주세요.");
@@ -429,7 +556,6 @@
             });
         }
 
-        // --- 💡 스티커 텍스트 적용 (Prompt 대체) ---
         function applyStickerText() {
             const txt = document.getElementById('custom-sticker-text').value.trim();
             if(txt === '') return;
@@ -453,7 +579,15 @@
             mapState.selectedStickerIdx = -1; 
             document.getElementById('custom-sticker-text').value = '';
 
-            if(t === 'text') { cvs.style.pointerEvents = 'none'; } else { cvs.style.pointerEvents = 'auto'; }
+            const badge = document.getElementById('mode-badge');
+            if(t === 'text') { 
+                cvs.style.pointerEvents = 'none'; 
+                badge.innerText = '⌨️ 글쓰기 모드'; badge.style.background = 'rgba(52, 152, 219, 0.9)';
+            } else { 
+                cvs.style.pointerEvents = 'auto'; 
+                if (t === 'pan') { badge.innerText = '🤚 이동 모드'; badge.style.background = 'rgba(149, 165, 166, 0.9)'; }
+                else { badge.innerText = '✏️ 그리기 모드'; badge.style.background = 'rgba(231, 76, 60, 0.9)'; }
+            }
             scheduleRedraw();
         }
 
@@ -464,30 +598,64 @@
         function saveHistory() {
             mapState.historyStack = mapState.historyStack.slice(0, mapState.historyStep + 1);
             mapState.historyStack.push(drawCtx.getImageData(0, 0, nbW, nbH));
+            
             mapState.stickerHistoryStack = mapState.stickerHistoryStack.slice(0, mapState.historyStep + 1);
             mapState.stickerHistoryStack.push(JSON.parse(JSON.stringify(mapState.stickers)));
-            mapState.historyStep++; updateHistoryBtns();
+            
+            mapState.textHistoryStack = (mapState.textHistoryStack || []).slice(0, mapState.historyStep + 1);
+            const textStates = Array.from(document.querySelectorAll('.text-box')).map(tb => tb.value);
+            mapState.textHistoryStack.push(textStates);
+
+            mapState.historyStep++; 
+            
+            if (mapState.historyStack.length > 20) {
+                mapState.historyStack.shift();
+                mapState.stickerHistoryStack.shift();
+                mapState.textHistoryStack.shift();
+                mapState.historyStep--;
+            }
+            updateHistoryBtns();
+            triggerAutoSave(); 
         }
 
         function undo() {
             if (mapState.historyStep > 0) {
-                mapState.historyStep--; drawCtx.putImageData(mapState.historyStack[mapState.historyStep], 0, 0);
+                mapState.historyStep--; 
+                drawCtx.putImageData(mapState.historyStack[mapState.historyStep], 0, 0);
                 mapState.stickers = JSON.parse(JSON.stringify(mapState.stickerHistoryStack[mapState.historyStep]));
+                
+                const texts = mapState.textHistoryStack[mapState.historyStep];
+                if(texts) {
+                    const textBoxes = document.querySelectorAll('.text-box');
+                    texts.forEach((txt, idx) => { if(textBoxes[idx]) textBoxes[idx].value = txt; });
+                }
+
                 mapState.lastPoint = null; mapState.selectedStickerIdx = -1; scheduleRedraw(); updateHistoryBtns();
+                triggerAutoSave();
             }
         }
+
         function redo() {
             if (mapState.historyStep < mapState.historyStack.length - 1) {
-                mapState.historyStep++; drawCtx.putImageData(mapState.historyStack[mapState.historyStep], 0, 0);
+                mapState.historyStep++; 
+                drawCtx.putImageData(mapState.historyStack[mapState.historyStep], 0, 0);
                 mapState.stickers = JSON.parse(JSON.stringify(mapState.stickerHistoryStack[mapState.historyStep]));
+                
+                const texts = mapState.textHistoryStack[mapState.historyStep];
+                if(texts) {
+                    const textBoxes = document.querySelectorAll('.text-box');
+                    texts.forEach((txt, idx) => { if(textBoxes[idx]) textBoxes[idx].value = txt; });
+                }
+
                 mapState.lastPoint = null; mapState.selectedStickerIdx = -1; scheduleRedraw(); updateHistoryBtns();
+                triggerAutoSave();
             }
         }
         function updateHistoryBtns() {
             document.getElementById('btn-undo').style.opacity = mapState.historyStep > 0 ? "1" : "0.4";
             document.getElementById('btn-redo').style.opacity = mapState.historyStep < mapState.historyStack.length - 1 ? "1" : "0.4";
         }
-        function clearAll() { if(confirm("그린 그림과 스티커를 싹 지울까요? (글씨는 남습니다)")) { drawCtx.clearRect(0, 0, nbW, nbH); mapState.stickers = []; saveHistory(); scheduleRedraw(); } }
+        function clearAll() { if(confirm("그린 그림과 스티커를 지울까요? (글씨는 남습니다)")) { drawCtx.clearRect(0, 0, nbW, nbH); mapState.stickers = []; saveHistory(); scheduleRedraw(); } }
 
         function drawSmoothPath(context, pts, type, w) {
             if(pts.length === 0) return;
@@ -516,6 +684,7 @@
                 const screenX = mapState.stickers[i].realX * scale; const screenY = mapState.stickers[i].realY * scale;
                 const sScale = mapState.stickers[i].scale || 1; 
                 
+                // 💡 5. 삭제버튼 HitTest 좌표계 수학적 유지
                 if (mapState.selectedStickerIdx === i && Math.hypot(clkX - (screenX+(25*sScale*scale)), clkY - (screenY-(25*sScale*scale))) < (30*sScale*scale)) {
                     mapState.stickers.splice(i, 1); mapState.selectedStickerIdx = -1; 
                     document.getElementById('custom-sticker-text').value = '';
@@ -529,7 +698,6 @@
                 mapState.downX = clkX; mapState.downY = clkY;
                 stickerSlider.value = mapState.stickers[mapState.selectedStickerIdx].scale || 1; 
                 
-                // 스티커 선택 시 패널의 입력창에 텍스트 동기화
                 const s = mapState.stickers[mapState.selectedStickerIdx];
                 document.getElementById('custom-sticker-text').value = s.type === 'text-only' ? s.text : (s.t || '');
                 
@@ -552,7 +720,6 @@
                 mapState.stickerMoved = true;
                 saveHistory(); 
                 
-                // 💡 수정: 스티커를 찍은 후 즉시 '이동' 모드로 강제 복귀
                 setTool('pan'); 
                 scheduleRedraw();
             }
@@ -592,7 +759,7 @@
             if (cvs.hasPointerCapture(e.pointerId)) cvs.releasePointerCapture(e.pointerId);
 
             if (mapState.selectedStickerIdx !== -1) {
-                saveHistory(); 
+                if (mapState.stickerMoved) saveHistory(); 
             }
 
             if (mapState.isPanning) mapState.isPanning = false;
@@ -624,7 +791,6 @@
         }, {passive: false});
         viewport.addEventListener('touchend', e => { if(e.touches.length < 2) initialPinchDist = null; });
 
-        // --- Redraw 엔진 ---
         function redraw() {
             container.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
             ctx.clearRect(0, 0, nbW, nbH);
@@ -637,7 +803,6 @@
             ctx.drawImage(tempCanvas, 0, 0, nbW, nbH);
         }
 
-        // 💡 수정: 스티커 렌더링 시 p.x, p.y 오타로 인한 화면 증발 버그 해결
         function drawStickers() {
             mapState.stickers.forEach((s, i) => {
                 const sx = s.realX; const sy = s.realY; const ss = s.scale || 1; 
@@ -654,10 +819,16 @@
                 }
                 
                 if (mapState.selectedStickerIdx === i) {
-                    ctx.strokeStyle = "#5DADE2"; ctx.lineWidth = 3; ctx.setLineDash([8, 8]);
+                    ctx.strokeStyle = "#5DADE2"; ctx.lineWidth = 3 / scale; ctx.setLineDash([8, 8]);
                     ctx.strokeRect(sx - (35*ss), sy - (35*ss), 70*ss, 85*ss); ctx.setLineDash([]);
-                    ctx.fillStyle = "#E74C3C"; ctx.beginPath(); ctx.arc(sx+(25*ss), sy-(25*ss), 16*ss, 0, Math.PI*2); ctx.fill();
-                    ctx.fillStyle = "white"; ctx.font = `bold ${16*ss}px sans-serif`; ctx.fillText("X", sx+(25*ss), sy-(24*ss));
+                    
+                    const btnOffsetX = 25 * ss / scale;
+                    const btnOffsetY = 25 * ss / scale;
+                    const btnRadius = 16 * ss / scale;
+                    const fontSize = 16 * ss / scale;
+
+                    ctx.fillStyle = "#E74C3C"; ctx.beginPath(); ctx.arc(sx+btnOffsetX, sy-btnOffsetY, btnRadius, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = "white"; ctx.font = `bold ${fontSize}px sans-serif`; ctx.fillText("X", sx+btnOffsetX, sy-btnOffsetY + (1/scale));
                 }
             });
         }
@@ -690,24 +861,26 @@
 
             container.style.transform = `translate(0px, 0px) scale(1)`;
 
-            setTimeout(() => {
-                html2canvas(container, { backgroundColor: '#FAFAFA', scale: 2 }).then(canvas => {
-                    const url = canvas.toDataURL("image/jpeg", 0.95);
-                    
-                    replacements.forEach(rep => { rep.div.parentNode.removeChild(rep.div); rep.textarea.style.display = ''; });
-                    document.querySelector('.nb-topic input').style.borderBottom = '2px dashed #5DADE2';
-                    
-                    mapState.selectedStickerIdx = tempSelected; scale = tempScale; panX = tempPanX; panY = tempPanY;
-                    scheduleRedraw();
-                    
-                    if (type === 'submit') {
-                        if (window.parent && window.parent.handleMapSave) window.parent.handleMapSave(url, "스마트 배움공책");
-                        else alert("런처를 통해 접속해야 제출이 가능합니다."); 
-                    } else if (type === 'download') {
-                        const a = document.createElement('a'); a.href = url; a.download = `MAP_KIT_배움공책.jpg`; document.body.appendChild(a); a.click(); document.body.removeChild(a); 
-                    }
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    html2canvas(container, { backgroundColor: '#FAFAFA', scale: 2 }).then(canvas => {
+                        const url = canvas.toDataURL("image/jpeg", 0.95);
+                        
+                        replacements.forEach(rep => { rep.div.parentNode.removeChild(rep.div); rep.textarea.style.display = ''; });
+                        document.querySelector('.nb-topic input').style.borderBottom = '2px dashed #5DADE2';
+                        
+                        mapState.selectedStickerIdx = tempSelected; scale = tempScale; panX = tempPanX; panY = tempPanY;
+                        scheduleRedraw();
+                        
+                        if (type === 'submit') {
+                            if (window.parent && window.parent.handleMapSave) window.parent.handleMapSave(url, "스마트 배움공책");
+                            else alert("런처를 통해 접속해야 제출이 가능합니다."); 
+                        } else if (type === 'download') {
+                            const a = document.createElement('a'); a.href = url; a.download = `MAP_KIT_배움공책.jpg`; document.body.appendChild(a); a.click(); document.body.removeChild(a); 
+                        }
+                    });
                 });
-            }, 100);
+            });
         }
     </script>
 </body>
